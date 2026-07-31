@@ -12,7 +12,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [usuario, setUsuario] = useState<Usuario | null>(MOCK_USUARIOS[0]);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
 
   const login = (userId: string) => {
     const found = MOCK_USUARIOS.find(u => u.id === userId);
