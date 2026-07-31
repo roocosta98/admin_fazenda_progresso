@@ -12,7 +12,7 @@ import { MapaMonitoramento } from '../pages/logistica/MapaMonitoramento';
 const ProtectedRoute = ({ children, allowedRoles }: { children: ReactNode, allowedRoles?: string[] }) => {
   const { usuario } = useAuth();
   
-  if (!usuario) return <Navigate to="/login" replace />;
+  if (!usuario) return <Navigate to="/" replace />;
   
   if (allowedRoles && !allowedRoles.includes(usuario.perfil)) {
     return <Navigate to={usuario.perfil === 'solicitante' ? '/solicitante/minhas' : '/logistica/dashboard'} replace />;
@@ -21,16 +21,10 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: ReactNode, allow
   return <>{children}</>;
 };
 
-const HomeRedirect = () => {
-  const { usuario } = useAuth();
-  if (!usuario) return <Navigate to="/login" replace />;
-  return <Navigate to={usuario.perfil === 'solicitante' ? '/solicitante/minhas' : '/logistica/dashboard'} replace />;
-};
-
 export const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/" element={<Login />} />
       
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         {/* Solicitante Routes */}
@@ -57,9 +51,6 @@ export const AppRoutes = () => {
           path="/logistica/monitoramento" 
           element={<ProtectedRoute allowedRoles={['logistica']}><MapaMonitoramento /></ProtectedRoute>} 
         />
-        
-        {/* Default redirect based on role */}
-        <Route path="/" element={<HomeRedirect />} />
       </Route>
       
       <Route path="*" element={<Navigate to="/" replace />} />
