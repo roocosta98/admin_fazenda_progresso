@@ -229,7 +229,7 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
                     </div>
                   ) : (
                     <>
-                      Confirmar e Integrar Sankhya <Zap size={18} className="ml-2 group-hover:animate-pulse" />
+                      Confirmar <Zap size={18} className="ml-2 group-hover:animate-pulse" />
                     </>
                   )}
                 </button>
