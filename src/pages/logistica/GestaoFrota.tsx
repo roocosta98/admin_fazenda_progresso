@@ -71,11 +71,6 @@ export const GestaoFrota = () => {
           {v.status === 'disponivel' ? 'Disponível' : v.status === 'em_uso' ? 'Em Uso' : 'Manutenção'}
         </span>
       )
-    },
-    {
-      header: '',
-      align: 'right' as const,
-      render: () => <button className="text-emerald-600 font-bold hover:text-emerald-700">Editar</button>
     }
   ];
 
@@ -155,13 +150,15 @@ export const GestaoFrota = () => {
           <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Gestão de Frota e Motoristas</h2>
           <p className="text-slate-500 mt-1">Controle o cadastro e a disponibilidade de veículos e equipe.</p>
         </div>
-        <button 
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-sm"
-        >
-          <Plus size={18} className="mr-2" />
-          {activeTab === 'veiculos' ? 'Novo Veículo' : 'Novo Motorista'}
-        </button>
+        {activeTab === 'motoristas' && (
+          <button 
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-sm"
+          >
+            <Plus size={18} className="mr-2" />
+            Novo Motorista
+          </button>
+        )}
       </div>
 
       <div className="bg-white p-2 rounded-2xl shadow-soft border border-slate-200/80 flex flex-col md:flex-row justify-between items-center gap-4">
