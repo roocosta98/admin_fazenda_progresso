@@ -24,14 +24,6 @@ export const GestaoFrota = () => {
     }
   };
 
-  const getOSAtual = (motoristaId: string) => {
-    const os = solicitacoes.find(s => 
-      s.motoristaAlocado?.id === motoristaId && 
-      (s.status === 'em_execucao' || s.status === 'agendada')
-    );
-    return os ? os.numeroOS : null;
-  };
-
   const filteredVeiculos = veiculos.filter(v => 
     v.placa.toLowerCase().includes(busca.toLowerCase()) || 
     v.modelo.toLowerCase().includes(busca.toLowerCase())
