@@ -20,6 +20,7 @@ interface AppContextType {
   aprovarEAgendarSolicitacao: (idOS: string, veiculoId: string, motoristaId: string, horarioConfirmado?: string) => void;
   reagendarSolicitacao: (idOS: string, novaData: string, novoHorario: string, observacaoLogistica: string) => void;
   cancelarSolicitacao: (idOS: string, motivo: string) => void;
+  substituirMotorista: (idOS: string, novoMotoristaId: string) => void;
   filtrarSolicitacoes: (filtros: { status?: StatusSolicitacao, projetoId?: string, busca?: string }) => SolicitacaoTransporte[];
 }
 
@@ -107,6 +108,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }));
   };
 
+  const substituirMotorista = (idOS: string, novoMotoristaId: string) => {
+    const motorista = motoristas.find(m => m.id === novoMotoristaId);
+    if (!motorista) return;
+
+    setSolicitacoes(prev => prev.map(sol => {
+      if (sol.numeroOS === idOS) {
+        return { ...sol, motoristaAlocado: motorista };
+      }
+      return sol;
+    }));
+
+    const novaNotif: NotificacaoSimulada = {
+      id: `NOT-${Date.now()}`,
+      mensagem: `Motorista substituído. O novo motorista da OS ${idOS} é ${motorista.nome}. Notificações enviadas.`,
+      data: new Date().toISOString(),
+      lida: false,
+      tipo: 'whatsapp'
+    };
+    setNotificacoes(prev => [novaNotif, ...prev]);
+  };
+
   const filtrarSolicitacoes = (filtros: { status?: StatusSolicitacao, projetoId?: string, busca?: string }) => {
     return solicitacoes.filter(sol => {
       let matches = true;
@@ -135,6 +157,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       aprovarEAgendarSolicitacao,
       reagendarSolicitacao,
       cancelarSolicitacao,
+      substituirMotorista,
       filtrarSolicitacoes
     }}>
       {children}

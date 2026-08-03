@@ -1,15 +1,28 @@
 import { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { Search, Plus, MapPin, Truck } from 'lucide-react';
+import { Search, Plus, MapPin, Truck, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { DataTable } from '../../components/common/DataTable';
-import type { Veiculo, Motorista } from '../../types';
+import type { Veiculo, Motorista, SolicitacaoTransporte } from '../../types';
 
 export const GestaoFrota = () => {
-  const { veiculos, motoristas, solicitacoes } = useAppContext();
+  const { veiculos, motoristas, solicitacoes, substituirMotorista } = useAppContext();
   const [activeTab, setActiveTab] = useState<'veiculos' | 'motoristas'>('veiculos');
   const [busca, setBusca] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [substituirModal, setSubstituirModal] = useState<{open: boolean; os: SolicitacaoTransporte | null; motoristaAntigo: Motorista | null}>({ open: false, os: null, motoristaAntigo: null });
+  const [novoMotoristaId, setNovoMotoristaId] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleSubstituir = () => {
+    if (substituirModal.os && novoMotoristaId) {
+      substituirMotorista(substituirModal.os.numeroOS, novoMotoristaId);
+      setSubstituirModal({ open: false, os: null, motoristaAntigo: null });
+      setNovoMotoristaId('');
+      setToastMessage('Motorista substituído e notificado com sucesso!');
+      setTimeout(() => setToastMessage(null), 5000);
+    }
+  };
 
   const getOSAtual = (motoristaId: string) => {
     const os = solicitacoes.find(s => 
@@ -57,11 +70,12 @@ export const GestaoFrota = () => {
     {
       header: 'Status',
       render: (v: Veiculo) => (
-        <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide border ${
+        <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide border flex items-center w-fit ${
           v.status === 'disponivel' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
           v.status === 'em_uso' ? 'bg-blue-50 text-blue-700 border-blue-200' :
           'bg-red-50 text-red-700 border-red-200'
         }`}>
+          {v.status === 'manutencao' && <AlertTriangle size={12} className="mr-1.5" />}
           {v.status === 'disponivel' ? 'Disponível' : v.status === 'em_uso' ? 'Em Uso' : 'Manutenção'}
         </span>
       )
@@ -105,11 +119,24 @@ export const GestaoFrota = () => {
     {
       header: 'Vínculo (OS Ativa)',
       render: (m: Motorista) => {
-        const osAtual = getOSAtual(m.id);
+        const osAtual = solicitacoes.find(s => 
+          s.motoristaAlocado?.id === m.id && 
+          (s.status === 'em_execucao' || s.status === 'agendada')
+        );
         return osAtual ? (
-          <span className="font-bold text-violet-700 bg-violet-50 px-2.5 py-1 rounded-lg border border-violet-200 shadow-sm inline-flex items-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 mr-2 animate-pulse"></span> {osAtual}
-          </span>
+          <div className="flex items-center space-x-2">
+            <span className="font-bold text-violet-700 bg-violet-50 px-2.5 py-1 rounded-lg border border-violet-200 shadow-sm inline-flex items-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-500 mr-2 animate-pulse"></span> {osAtual.numeroOS}
+            </span>
+            {osAtual.status === 'agendada' && (
+              <button 
+                onClick={() => setSubstituirModal({ open: true, os: osAtual, motoristaAntigo: m })} 
+                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-md font-bold transition-colors"
+              >
+                Substituir
+              </button>
+            )}
+          </div>
         ) : (
           <span className="text-slate-400 font-medium">-</span>
         )
@@ -124,6 +151,13 @@ export const GestaoFrota = () => {
 
   return (
     <div className="space-y-6 pb-12">
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center space-x-3 animate-fade-in-up border border-slate-700">
+          <CheckCircle2 className="text-emerald-400" />
+          <span className="font-medium tracking-wide">{toastMessage}</span>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Gestão de Frota e Motoristas</h2>
@@ -187,6 +221,48 @@ export const GestaoFrota = () => {
           >
             Fechar
           </button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={substituirModal.open} onClose={() => setSubstituirModal({ open: false, os: null, motoristaAntigo: null })} title="Substituir Motorista">
+        <div className="p-5 space-y-5">
+          <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 flex items-start space-x-3">
+            <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-sm font-bold text-slate-800">Atenção: Re-alocação Logística</p>
+              <p className="text-xs text-slate-600 mt-1">Ao confirmar, o motorista <strong>{substituirModal.motoristaAntigo?.nome}</strong> será removido da OS {substituirModal.os?.numeroOS} e ambos receberão notificações no WhatsApp/App.</p>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Novo Motorista</label>
+            <select
+              value={novoMotoristaId}
+              onChange={(e) => setNovoMotoristaId(e.target.value)}
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm font-medium appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat"
+            >
+              <option value="">Selecione um motorista disponível...</option>
+              {motoristas.filter(m => m.status === 'disponivel' && m.id !== substituirModal.motoristaAntigo?.id).map(m => (
+                <option key={m.id} value={m.id}>{m.nome}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="pt-4 flex justify-end space-x-3">
+            <button 
+              onClick={() => setSubstituirModal({ open: false, os: null, motoristaAntigo: null })}
+              className="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSubstituir}
+              disabled={!novoMotoristaId}
+              className="px-5 py-2.5 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Confirmar Substituição
+            </button>
+          </div>
         </div>
       </Modal>
     </div>

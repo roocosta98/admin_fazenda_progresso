@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppContext } from '../../../context/AppContext';
 import { useAuth } from '../../../context/AuthContext';
-import { Truck, MapPin, Calendar, Clock, Briefcase, FileText, CheckCircle2, Navigation, Zap } from 'lucide-react';
+import { Truck, MapPin, Calendar, Clock, Briefcase, FileText, CheckCircle2, Navigation, Zap, User } from 'lucide-react';
 import { Modal } from '../../../components/common/Modal';
 import { SlideOverDrawer } from '../../../components/common/SlideOverDrawer';
 
@@ -19,6 +19,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
   const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
+    solicitanteNome: usuario?.nome || '',
     tipoServico: '',
     origem: '',
     destino: '',
@@ -27,6 +28,14 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
     projetoId: '',
     observacoes: ''
   });
+
+  // Atualiza o nome se o usuario carregar depois
+  import { useEffect } from 'react';
+  useEffect(() => {
+    if (usuario?.nome && !formData.solicitanteNome) {
+      setFormData(prev => ({...prev, solicitanteNome: usuario.nome}));
+    }
+  }, [usuario]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +51,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
       criarSolicitacao({
         solicitante: {
           id: usuario.id,
-          nome: usuario.nome,
+          nome: formData.solicitanteNome, // Usando o nome do formulário
           perfil: usuario.perfil,
           departamento: usuario.departamento
         },
@@ -65,6 +74,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
     
     // Reset form
     setFormData({
+      solicitanteNome: usuario?.nome || '',
       tipoServico: '',
       origem: '',
       destino: '',
@@ -106,8 +116,8 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
               <h3 className="text-base font-bold text-slate-800">Selecione o Veículo/Serviço</h3>
             </div>
             
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {['Prancha', 'Caçamba', 'Ônibus', 'Pick-up', 'Comboio', 'Trator'].map((tipo) => (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {['Prancha', 'Caçamba', 'Ônibus', 'Pick-up', 'Comboio', 'Trator', 'Insumos'].map((tipo) => (
                 <label 
                   key={tipo} 
                   className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 group overflow-hidden ${
@@ -147,6 +157,21 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
             </div>
 
             <div className="space-y-5 bg-slate-50 p-5 rounded-2xl border border-slate-200/60">
+              <div className="group/input">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center">
+                  <User size={14} className="mr-1.5" /> Solicitante
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    className="w-full pl-4 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm font-medium text-slate-700"
+                    value={formData.solicitanteNome}
+                    onChange={(e) => setFormData({...formData, solicitanteNome: e.target.value})}
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="group/input">
                   <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Origem</label>
@@ -154,14 +179,19 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <MapPin size={16} className="text-slate-400 group-focus-within/input:text-emerald-500 transition-colors" />
                     </div>
-                    <input
-                      type="text"
+                    <select
                       required
-                      placeholder="Ex: Fazenda Progresso - Sede..."
-                      className="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm"
+                      className="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm appearance-none"
                       value={formData.origem}
                       onChange={(e) => setFormData({...formData, origem: e.target.value})}
-                    />
+                    >
+                      <option value="">Selecione a origem...</option>
+                      <option value="Fazenda Progresso - Sede">Fazenda Progresso - Sede</option>
+                      <option value="Lote 22 / Campo 4">Lote 22 / Campo 4</option>
+                      <option value="Silo Principal">Silo Principal</option>
+                      <option value="Armazém de Defensivos">Armazém de Defensivos</option>
+                      <option value="Oficina Central">Oficina Central</option>
+                    </select>
                   </div>
                 </div>
                 <div className="group/input">
@@ -170,14 +200,19 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <MapPin size={16} className="text-slate-400 group-focus-within/input:text-rose-500 transition-colors" />
                     </div>
-                    <input
-                      type="text"
+                    <select
                       required
-                      placeholder="Ex: Lote 22 / Campo 4..."
-                      className="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm"
+                      className="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm appearance-none"
                       value={formData.destino}
                       onChange={(e) => setFormData({...formData, destino: e.target.value})}
-                    />
+                    >
+                      <option value="">Selecione o destino...</option>
+                      <option value="Fazenda Progresso - Sede">Fazenda Progresso - Sede</option>
+                      <option value="Lote 22 / Campo 4">Lote 22 / Campo 4</option>
+                      <option value="Silo Principal">Silo Principal</option>
+                      <option value="Armazém de Defensivos">Armazém de Defensivos</option>
+                      <option value="Oficina Central">Oficina Central</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -199,7 +234,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                   </div>
                 </div>
                 <div className="group/input">
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Horário Desejado</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Horário Desejado <span className="text-[10px] text-slate-400 normal-case block mt-0.5">* Guia de planejamento para a logística</span></label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Clock size={16} className="text-slate-400 group-focus-within/input:text-emerald-500 transition-colors" />
@@ -239,8 +274,9 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center"><FileText size={14} className="mr-1.5" /> Observações Especiais (Opcional)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center"><FileText size={14} className="mr-1.5" /> Observação (Obrigatória)</label>
                 <textarea
+                  required
                   rows={3}
                   placeholder="Instruções específicas para o motorista, cargas especiais..."
                   className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm resize-none shadow-sm"

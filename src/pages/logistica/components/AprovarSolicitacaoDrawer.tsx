@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { SlideOverDrawer } from '../../../components/common/SlideOverDrawer';
 import { StatusBadge } from '../../../components/common/StatusBadge';
+import { Modal } from '../../../components/common/Modal';
 import { useAppContext } from '../../../context/AppContext';
-import { MapPin, Calendar, Truck, User as UserIcon, AlignLeft, Clock, FileText, Zap, Ban, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { MapPin, Calendar, Truck, User as UserIcon, AlignLeft, Clock, FileText, Zap, Ban, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
 import type { SolicitacaoTransporte } from '../../../types';
 
 interface AprovarSolicitacaoDrawerProps {
@@ -26,6 +27,7 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
 
   const [motivoCancelamento, setMotivoCancelamento] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [manutencaoModalOpen, setManutencaoModalOpen] = useState(false);
 
   useEffect(() => {
     if (solicitacao) {
@@ -45,6 +47,18 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
       onSuccess(`${solicitacao.numeroOS} Aprovada! Integrada ao Sankhya e notificação WhatsApp disparada.`);
       onClose();
     }, 800);
+  };
+
+  const handleVeiculoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    const selectedVeiculo = veiculos.find(v => v.id === selectedId);
+    
+    if (selectedVeiculo && selectedVeiculo.status === 'manutencao') {
+      setManutencaoModalOpen(true);
+      setVeiculoId('');
+    } else {
+      setVeiculoId(selectedId);
+    }
   };
 
   const handleReagendar = () => {
@@ -147,16 +161,22 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
                 <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center"><Truck size={14} className="mr-1.5" /> Veículo Compatível</label>
                 <select
                   value={veiculoId}
-                  onChange={(e) => setVeiculoId(e.target.value)}
+                  onChange={handleVeiculoChange}
                   className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm font-medium appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat"
                 >
                   <option value="">Selecione o veículo...</option>
                   {veiculosCompativeis.map(v => (
-                    <option key={v.id} value={v.id} disabled={v.status !== 'disponivel'}>
+                    <option key={v.id} value={v.id} disabled={v.status === 'em_uso'}>
                       {v.placa} - {v.modelo} ({v.status})
                     </option>
                   ))}
                 </select>
+                {veiculoId && (
+                  <div className="mt-3 p-3 bg-emerald-50/50 border border-emerald-100 rounded-lg flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-600 uppercase">Odômetro Sankhya</span>
+                    <span className="text-sm font-mono font-bold text-emerald-800">{veiculos.find(v => v.id === veiculoId)?.odometro || '154.320'} km</span>
+                  </div>
+                )}
               </div>
 
               <div className="group/input">
@@ -233,8 +253,9 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
               </div>
 
               <div className="group/input">
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center"><FileText size={14} className="mr-1.5" /> Justificativa do Reagendamento</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center"><FileText size={14} className="mr-1.5" /> Justificativa (Obrigatória)</label>
                 <textarea
+                  required
                   value={observacaoLogistica}
                   onChange={(e) => setObservacaoLogistica(e.target.value)}
                   placeholder="Explique o motivo para o solicitante..."
@@ -258,8 +279,9 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
           {activeTab === 'cancelar' && (
             <div className="space-y-5 flex-1 flex flex-col animate-fade-in">
               <div className="group/input">
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center"><FileText size={14} className="mr-1.5" /> Motivo do Cancelamento</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center"><FileText size={14} className="mr-1.5" /> Motivo do Cancelamento (Obrigatório)</label>
                 <textarea
+                  required
                   value={motivoCancelamento}
                   onChange={(e) => setMotivoCancelamento(e.target.value)}
                   placeholder="Justificativa oficial e final (não poderá ser desfeito)..."
@@ -281,6 +303,24 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
           )}
         </div>
       </div>
+
+      <Modal isOpen={manutencaoModalOpen} onClose={() => setManutencaoModalOpen(false)} title="Bloqueio de Seleção">
+        <div className="flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4 relative">
+            <AlertTriangle size={32} />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 mb-2">Seleção Indisponível</h3>
+          <p className="text-slate-500 mb-6 max-w-sm mx-auto">
+            Veículo em manutenção. A seleção está bloqueada até que o status seja normalizado pela oficina.
+          </p>
+          <button
+            onClick={() => setManutencaoModalOpen(false)}
+            className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors"
+          >
+            Entendi
+          </button>
+        </div>
+      </Modal>
     </SlideOverDrawer>
   );
 };

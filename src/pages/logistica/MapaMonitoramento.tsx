@@ -61,26 +61,36 @@ export const MapaMonitoramento = () => {
                     <span className="text-xs font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">{sol.veiculoAlocado?.placa}</span>
                   </div>
                   
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-slate-700 flex items-center"><Navigation size={14} className="mr-2 text-slate-400" /> {sol.origem} &rarr; {sol.destino}</p>
-                    <p className="text-sm font-medium text-slate-700 flex items-center"><Truck size={14} className="mr-2 text-emerald-500" /> {sol.veiculoAlocado?.modelo}</p>
-                    
-                    <div className="mt-4 pt-4 border-t border-slate-200/60">
-                      <div className="flex justify-between text-xs font-bold mb-1.5">
-                        <span className="text-slate-500">Progresso</span>
-                        <span className="text-emerald-600">65%</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden shadow-inner">
-                        <div className="bg-gradient-to-r from-emerald-400 to-emerald-500 h-2 rounded-full relative" style={{ width: '65%' }}>
-                           <div className="absolute top-0 right-0 bottom-0 w-2 bg-white/50 animate-ping rounded-full"></div>
+                  {(() => {
+                    const status = sol.indicadorComunicacao?.status || (Math.random() > 0.8 ? 'alerta' : 'online');
+                    const time = sol.indicadorComunicacao?.ultimaComunicacao || (status === 'alerta' ? 'há 45 min' : 'há 2 min');
+                    return (
+                      <div className="space-y-3">
+                        <p className="text-sm font-medium text-slate-700 flex items-center"><Navigation size={14} className="mr-2 text-slate-400" /> {sol.origem} &rarr; {sol.destino}</p>
+                        <p className="text-sm font-medium text-slate-700 flex items-center"><Truck size={14} className="mr-2 text-emerald-500" /> {sol.veiculoAlocado?.modelo}</p>
+                        
+                        <div className="mt-4 pt-4 border-t border-slate-200/60">
+                          <div className="flex justify-between text-xs font-bold mb-1.5">
+                            <span className="text-slate-500">Progresso</span>
+                            <span className="text-emerald-600">65%</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden shadow-inner">
+                            <div className="bg-gradient-to-r from-emerald-400 to-emerald-500 h-2 rounded-full relative" style={{ width: '65%' }}>
+                               <div className="absolute top-0 right-0 bottom-0 w-2 bg-white/50 animate-ping rounded-full"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-100">
+                          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">62 km/h</span>
+                          {status === 'online' ? (
+                            <span className="text-[10px] font-bold text-emerald-600 flex items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span> Último ping: {time}</span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-rose-600 flex items-center"><AlertTriangle size={10} className="mr-1" /> Alerta: {time} sem comunicação</span>
+                          )}
                         </div>
                       </div>
-                    </div>
-                    <div className="flex justify-between items-center pt-2">
-                      <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">62 km/h</span>
-                      <span className="text-xs font-bold text-emerald-600 flex items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span> GPS Ativo</span>
-                    </div>
-                  </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -128,7 +138,9 @@ export const MapaMonitoramento = () => {
             </div>
 
             <div className="space-y-2 px-1">
-              {emExecucao.map(sol => (
+              {emExecucao.map(sol => {
+                const status = sol.indicadorComunicacao?.status || (Math.random() > 0.8 ? 'alerta' : 'online');
+                return (
                 <div 
                   key={sol.id} 
                   onClick={() => setSelectedOS(sol)}
@@ -136,9 +148,15 @@ export const MapaMonitoramento = () => {
                 >
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-bold text-slate-800 text-sm">{sol.numeroOS}</span>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span> Online
-                    </span>
+                    {status === 'online' ? (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span> Online
+                      </span>
+                    ) : (
+                      <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold flex items-center">
+                        <AlertTriangle size={10} className="mr-1" /> Alerta
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-700 font-medium mb-3 truncate">{sol.veiculoAlocado?.modelo} • <span className="text-slate-500">{sol.motoristaAlocado?.nome}</span></p>
                   
@@ -147,7 +165,8 @@ export const MapaMonitoramento = () => {
                     <span className="font-mono text-slate-400">{sol.veiculoAlocado?.placa}</span>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

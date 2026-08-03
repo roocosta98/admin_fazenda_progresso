@@ -16,6 +16,7 @@ export interface Veiculo {
   modelo: string;
   tipo: string;
   status: StatusVeiculo;
+  odometro?: number;
 }
 
 export type StatusMotorista = 'disponivel' | 'em_rota' | 'folga';
@@ -58,6 +59,7 @@ export interface SolicitacaoTransporte {
   };
   observacaoLogistica?: string;
   motivoCancelamento?: string;
+  indicadorComunicacao?: { status: 'online' | 'offline' | 'alerta'; ultimaComunicacao: string; mensagem?: string };
 }
 
 export interface NotificacaoSimulada {

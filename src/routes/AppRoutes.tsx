@@ -8,6 +8,8 @@ import { Dashboard } from '../pages/logistica/Dashboard';
 import { FilaPendentes } from '../pages/logistica/FilaPendentes';
 import { GestaoFrota } from '../pages/logistica/GestaoFrota';
 import { MapaMonitoramento } from '../pages/logistica/MapaMonitoramento';
+import { CentralEmExecucao } from '../pages/logistica/CentralEmExecucao';
+import { TelaTVMonitor } from '../pages/logistica/TelaTVMonitor';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: ReactNode, allowedRoles?: string[] }) => {
   const { usuario } = useAuth();
@@ -51,8 +53,17 @@ export const AppRoutes = () => {
           path="/logistica/monitoramento" 
           element={<ProtectedRoute allowedRoles={['logistica']}><MapaMonitoramento /></ProtectedRoute>} 
         />
+        <Route 
+          path="/logistica/em-execucao" 
+          element={<ProtectedRoute allowedRoles={['logistica']}><CentralEmExecucao /></ProtectedRoute>} 
+        />
       </Route>
       
+      <Route 
+        path="/logistica/monitor-tv" 
+        element={<ProtectedRoute allowedRoles={['logistica']}><TelaTVMonitor /></ProtectedRoute>} 
+      />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
