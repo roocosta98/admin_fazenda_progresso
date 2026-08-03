@@ -44,7 +44,7 @@ export const MinhasSolicitacoes = () => {
       accessor: 'tipoServico' as keyof SolicitacaoTransporte,
       render: (row: SolicitacaoTransporte) => (
         <span className="flex items-center text-slate-700 font-semibold text-sm">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mr-3 border border-emerald-100">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mr-3 border border-blue-100">
             <Truck size={14} />
           </div>
           {row.tipoServico}
@@ -55,7 +55,7 @@ export const MinhasSolicitacoes = () => {
       header: 'Rota',
       render: (row: SolicitacaoTransporte) => (
         <div className="flex items-center gap-2 text-xs font-semibold">
-          <span className="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md border border-emerald-100/50 flex items-center"><MapPin size={12} className="mr-1"/> {row.origem}</span>
+          <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md border border-blue-100/50 flex items-center"><MapPin size={12} className="mr-1"/> {row.origem}</span>
           <span className="text-slate-300">&rarr;</span>
           <span className="bg-rose-50 text-rose-700 px-2 py-1 rounded-md border border-rose-100/50 flex items-center"><MapPin size={12} className="mr-1"/> {row.destino}</span>
         </div>
@@ -79,7 +79,7 @@ export const MinhasSolicitacoes = () => {
       header: '',
       align: 'right' as const,
       render: () => (
-        <button className="text-emerald-600 hover:text-emerald-700 font-bold text-sm bg-emerald-50 hover:bg-emerald-100 px-4 py-1.5 rounded-lg transition-colors border border-emerald-200">
+        <button className="text-blue-600 hover:text-blue-700 font-bold text-sm bg-blue-50 hover:bg-blue-100 px-4 py-1.5 rounded-lg transition-colors border border-blue-200">
           Detalhes
         </button>
       )
@@ -97,7 +97,7 @@ export const MinhasSolicitacoes = () => {
           
           <button 
             onClick={() => setNovaSolOpen(true)}
-            className="inline-flex justify-center items-center px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 transition-colors shadow-sm hover:shadow-emerald-500/20 shadow-emerald-500/10 w-full sm:w-auto whitespace-nowrap"
+            className="inline-flex justify-center items-center px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-sm hover:shadow-blue-500/20 shadow-blue-500/10 w-full sm:w-auto whitespace-nowrap"
           >
             <Plus size={18} className="mr-2" /> Nova Solicitação
           </button>
@@ -132,7 +132,7 @@ export const MinhasSolicitacoes = () => {
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por OS, serviço..."
-              className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50 shadow-sm transition-all text-sm font-medium"
+              className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 shadow-sm transition-all text-sm font-medium"
             />
           </div>
         </div>

@@ -641,7 +641,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                     </label>
                     <textarea
                       rows={3}
-                      placeholder="Instruções para o motorista, pontos de referência..."
+                      placeholder="Ex: Passar primeiro no Pivô 01, depois Pivô 04. Carga sensível a chuva, se possivel antes das 12h"
                       className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 resize-none shadow-sm"
                       value={observacoes}
                       onChange={(e) => setObservacoes(e.target.value)}
