@@ -85,7 +85,15 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
 
   if (!solicitacao) return null;
 
-  const veiculosCompativeis = veiculos.filter(v => v.tipo === solicitacao.tipoServico);
+  const veiculosFiltrados = veiculos.filter(v => {
+    if (!solicitacao?.tipoServico) return true;
+    const servico = solicitacao.tipoServico.toLowerCase();
+    const tipo = v.tipo.toLowerCase();
+    const modelo = v.modelo.toLowerCase();
+    return servico.includes(tipo) || tipo.includes(servico) || servico.includes(modelo);
+  });
+
+  const veiculosOpcoes = veiculosFiltrados.length > 0 ? veiculosFiltrados : veiculos;
 
   return (
     <SlideOverDrawer isOpen={isOpen} onClose={onClose} title="Análise Logística" width="max-w-md">
@@ -165,9 +173,9 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
                   className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm font-medium appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat"
                 >
                   <option value="">Selecione o veículo...</option>
-                  {veiculosCompativeis.map(v => (
-                    <option key={v.id} value={v.id} disabled={v.status === 'em_uso'}>
-                      {v.placa} - {v.modelo} ({v.status})
+                  {veiculosOpcoes.map(v => (
+                    <option key={v.id} value={v.id}>
+                      {v.placa} - {v.modelo} ({v.tipo})
                     </option>
                   ))}
                 </select>

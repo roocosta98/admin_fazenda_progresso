@@ -13,19 +13,23 @@ export const MOCK_PROJETOS: Projeto[] = [
 ];
 
 export const MOCK_VEICULOS: Veiculo[] = [
-  { id: 'V-001', placa: 'ABC-1234', modelo: 'Volvo FH 540', tipo: 'Prancha', status: 'disponivel' },
-  { id: 'V-002', placa: 'DEF-5678', modelo: 'Mercedes-Benz Atego', tipo: 'Comboio', status: 'em_uso' },
-  { id: 'V-003', placa: 'GHI-9012', modelo: 'Fiat Strada', tipo: 'Carro Passeio', status: 'disponivel' },
-  { id: 'V-004', placa: 'JKL-3456', modelo: 'Agrale Marruá', tipo: 'Ônibus', status: 'manutencao' },
-  { id: 'V-005', placa: 'MNO-7890', modelo: 'John Deere 8R', tipo: 'Trator', status: 'disponivel' },
-  { id: 'V-006', placa: 'PQR-1234', modelo: 'Scania R500', tipo: 'Caçamba', status: 'disponivel' },
+  { id: 'V-025', placa: 'BXE-7320', modelo: 'ONIBUS M.BENZ 1318', tipo: 'Ônibus', status: 'disponivel', odometro: 142500 },
+  { id: 'V-029', placa: 'CXU-6289', modelo: 'CAÇAMBA M.BENZ 1513', tipo: 'Caçamba', status: 'disponivel', odometro: 218900 },
+  { id: 'V-032', placa: 'ICM-1818', modelo: 'ONIBUS M.BENZ 1620', tipo: 'Ônibus', status: 'disponivel', odometro: 98400 },
+  { id: 'V-035', placa: 'IEU-7100', modelo: 'CAMINHAO M.BENZ 1313', tipo: 'Caminhão', status: 'disponivel', odometro: 310200 },
+  { id: 'V-036', placa: 'ICY-0877', modelo: 'CAVALO MECANICO M.BENZ LS 1935', tipo: 'Prancha', status: 'disponivel', odometro: 450100 },
+  { id: 'V-040', placa: 'JKL-9012', modelo: 'PICK-UP TOYOTA HILUX 4X4', tipo: 'Pick-up', status: 'disponivel', odometro: 65400 },
+  { id: 'V-042', placa: 'MNO-3456', modelo: 'TRATOR JOHN DEERE 8335R', tipo: 'Trator', status: 'disponivel', odometro: 4200 },
+  { id: 'V-045', placa: 'PQR-7890', modelo: 'COMBOIO MERCEDES BENZ 2726', tipo: 'Comboio', status: 'disponivel', odometro: 184300 },
+  { id: 'V-048', placa: 'ABC-1234', modelo: 'PRANCHA 3 EIXOS HEAVY DUTY', tipo: 'Prancha', status: 'disponivel', odometro: 125000 },
 ];
 
 export const MOCK_MOTORISTAS: Motorista[] = [
   { id: 'M-001', nome: 'Antônio Silva', telefone: '(61) 99999-1111', status: 'disponivel' },
-  { id: 'M-002', nome: 'Pedro Santos', telefone: '(61) 99999-2222', status: 'em_rota' },
-  { id: 'M-003', nome: 'José Oliveira', telefone: '(61) 99999-3333', status: 'folga' },
+  { id: 'M-002', nome: 'Pedro Santos', telefone: '(61) 99999-2222', status: 'disponivel' },
+  { id: 'M-003', nome: 'José Oliveira', telefone: '(61) 99999-3333', status: 'disponivel' },
   { id: 'M-004', nome: 'Marcos Costa', telefone: '(61) 99999-4444', status: 'disponivel' },
+  { id: 'M-005', nome: 'Raimundo Nonato', telefone: '(61) 99999-5555', status: 'disponivel' },
 ];
 
 export const MOCK_SOLICITACOES: SolicitacaoTransporte[] = [
