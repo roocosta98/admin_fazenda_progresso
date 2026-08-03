@@ -282,8 +282,8 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
       >
         <div className="flex flex-col h-full bg-slate-50 min-h-screen">
           
-          {/* Header Azul Premium */}
-          <div className="bg-[#1E40AF] text-white px-4 py-4 sticky top-0 z-30 shadow-md">
+          {/* Header Premium (Mesmo Tom do Sidebar - Slate 900) */}
+          <div className="bg-slate-900 text-white px-4 py-4 sticky top-0 z-30 shadow-md border-b border-slate-800">
             <div className="flex items-center justify-between">
               <button 
                 type="button" 
@@ -298,7 +298,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                 <h2 className="text-lg font-extrabold tracking-wider uppercase">
                   {getHeaderTitle()}
                 </h2>
-                <div className="text-[11px] font-medium text-blue-100/90 tracking-wide mt-0.5">
+                <div className="text-[11px] font-medium text-slate-400 tracking-wide mt-0.5">
                   Passo {currentStep} de 6 — Seleção Sequencial
                 </div>
               </div>
@@ -313,10 +313,10 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
               </button>
             </div>
 
-            {/* Barra de Progresso Superior (Azul) */}
-            <div className="w-full bg-blue-950/40 h-1.5 rounded-full mt-3 overflow-hidden">
+            {/* Barra de Progresso Superior */}
+            <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
               <div 
-                className="bg-blue-300 h-full transition-all duration-300 ease-out"
+                className="bg-emerald-400 h-full transition-all duration-300 ease-out"
                 style={{ width: `${(currentStep / 6) * 100}%` }}
               ></div>
             </div>
@@ -661,7 +661,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="bg-blue-700 hover:bg-blue-800 text-white px-7 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-700/20 flex items-center text-sm disabled:opacity-70"
+                      className="bg-slate-900 hover:bg-slate-800 text-white px-7 py-3 rounded-xl font-bold transition-all shadow-lg shadow-slate-900/20 flex items-center text-sm disabled:opacity-70"
                     >
                       {isLoading ? (
                         <div className="flex items-center">
@@ -673,7 +673,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                         </div>
                       ) : (
                         <>
-                          Integrar Sankhya e Confirmar <Zap size={16} className="ml-2" />
+                          Salvar <Zap size={16} className="ml-2 text-emerald-400" />
                         </>
                       )}
                     </button>
@@ -688,9 +688,9 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
       {/* Modal de Sucesso */}
       <Modal isOpen={successModalOpen} onClose={handleFinish} title="Integração Concluída!">
         <div className="flex flex-col items-center justify-center p-8 text-center">
-          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-6 relative">
-            <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-20"></div>
-            <CheckCircle2 size={42} className="relative z-10" />
+          <div className="w-20 h-20 bg-slate-100 text-slate-900 rounded-full flex items-center justify-center mb-6 relative">
+            <div className="absolute inset-0 bg-slate-900 rounded-full animate-ping opacity-20"></div>
+            <CheckCircle2 size={42} className="relative z-10 text-emerald-600" />
           </div>
           <h3 className="text-2xl font-black text-slate-800 mb-2">OS Gerada com Sucesso!</h3>
           <p className="text-slate-500 mb-8 max-w-sm mx-auto leading-relaxed text-sm">
@@ -698,7 +698,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
           </p>
           <button
             onClick={handleFinish}
-            className="w-full bg-blue-700 text-white py-3.5 rounded-xl font-bold hover:bg-blue-800 transition-colors shadow-lg text-sm flex items-center justify-center"
+            className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg text-sm flex items-center justify-center"
           >
             Acompanhar Pedidos
           </button>

@@ -97,7 +97,7 @@ export const MinhasSolicitacoes = () => {
           
           <button 
             onClick={() => setNovaSolOpen(true)}
-            className="inline-flex justify-center items-center px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-sm hover:shadow-blue-500/20 shadow-blue-500/10 w-full sm:w-auto whitespace-nowrap"
+            className="inline-flex justify-center items-center px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-sm hover:shadow-slate-900/20 shadow-slate-900/10 w-full sm:w-auto whitespace-nowrap"
           >
             <Plus size={18} className="mr-2" /> Nova Solicitação
           </button>
