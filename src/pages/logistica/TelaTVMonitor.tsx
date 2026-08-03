@@ -53,7 +53,7 @@ const DEMO_OS_LIST: TVOSItem[] = [
     destino: 'Pivô 04',
     horario: '08:30',
     velocidade: 45,
-    ultimoRastreio: '15:58:10 (há 30 seg)'
+    ultimoRastreio: '15:59:10 (há 20 seg)'
   },
   {
     id: 'SOL-6549',
@@ -70,7 +70,7 @@ const DEMO_OS_LIST: TVOSItem[] = [
     destino: 'Pivô 08',
     horario: '09:00',
     velocidade: 0,
-    ultimoRastreio: '15:57:42 (há 1 min)'
+    ultimoRastreio: '15:58:42 (há 50 seg)'
   },
   {
     id: 'SOL-6546',
@@ -87,7 +87,7 @@ const DEMO_OS_LIST: TVOSItem[] = [
     destino: 'Talhão 05',
     horario: '09:15',
     velocidade: 52,
-    ultimoRastreio: '15:58:25 (há 15 seg)'
+    ultimoRastreio: '15:59:25 (há 5 seg)'
   },
   {
     id: 'SOL-6529',
@@ -104,7 +104,7 @@ const DEMO_OS_LIST: TVOSItem[] = [
     destino: 'Silomax Sede',
     horario: '09:30',
     velocidade: 64,
-    ultimoRastreio: '15:56:10 (há 2 min)'
+    ultimoRastreio: '15:57:10 (há 2 min)'
   },
   {
     id: 'SOL-6530',
@@ -121,7 +121,7 @@ const DEMO_OS_LIST: TVOSItem[] = [
     destino: 'Pivô 03',
     horario: '10:00',
     velocidade: 38,
-    ultimoRastreio: '15:58:30 (há 10 seg)'
+    ultimoRastreio: '15:59:00 (há 30 seg)'
   },
   {
     id: 'SOL-6493',
@@ -138,7 +138,7 @@ const DEMO_OS_LIST: TVOSItem[] = [
     destino: 'Setor Leste',
     horario: '10:15',
     velocidade: 58,
-    ultimoRastreio: '15:58:01 (há 40 seg)'
+    ultimoRastreio: '15:58:55 (há 35 seg)'
   },
   {
     id: 'SOL-6480',
@@ -155,7 +155,7 @@ const DEMO_OS_LIST: TVOSItem[] = [
     destino: 'Lote 01',
     horario: '10:30',
     velocidade: 14,
-    ultimoRastreio: '15:57:15 (há 1 min)'
+    ultimoRastreio: '15:58:15 (há 1 min)'
   },
   {
     id: 'SOL-6475',
@@ -172,7 +172,7 @@ const DEMO_OS_LIST: TVOSItem[] = [
     destino: 'Silo Norte',
     horario: '11:00',
     velocidade: 0,
-    ultimoRastreio: '15:50:00 (há 8 min)'
+    ultimoRastreio: '15:50:00 (há 9 min)'
   },
   {
     id: 'SOL-6471',
@@ -189,7 +189,7 @@ const DEMO_OS_LIST: TVOSItem[] = [
     destino: 'Reserva Leste',
     horario: '11:30',
     velocidade: 0,
-    ultimoRastreio: '15:45:10 (há 13 min)'
+    ultimoRastreio: '15:45:10 (há 14 min)'
   },
   {
     id: 'SOL-6468',
@@ -206,7 +206,7 @@ const DEMO_OS_LIST: TVOSItem[] = [
     destino: 'Pivô 06',
     horario: '12:00',
     velocidade: 25,
-    ultimoRastreio: '15:58:05 (há 35 seg)'
+    ultimoRastreio: '15:59:05 (há 25 seg)'
   },
   {
     id: 'SOL-6460',
@@ -223,7 +223,7 @@ const DEMO_OS_LIST: TVOSItem[] = [
     destino: 'Refeitório Sede',
     horario: '12:30',
     velocidade: 16,
-    ultimoRastreio: '15:57:50 (há 50 seg)'
+    ultimoRastreio: '15:58:50 (há 40 seg)'
   },
   {
     id: 'SOL-6455',
@@ -241,6 +241,108 @@ const DEMO_OS_LIST: TVOSItem[] = [
     horario: '07:00',
     velocidade: 60,
     ultimoRastreio: '14:30:00 (finalizado)'
+  },
+  {
+    id: 'SOL-6450',
+    numeroOS: 'OS-2026-0013',
+    veiculoModelo: 'CAMINHAO VOLVO VM 330',
+    veiculoPlaca: 'MNO-8899',
+    statusTexto: 'Em Execução',
+    statusTipo: 'em_execucao',
+    tipoServico: '19514 - TRANSPORTE DE GRÃOS / COLHEITA',
+    motorista: 'Adilson Santos',
+    solicitante: 'Setor de Almacenagem',
+    prioridade: 'Alta',
+    origem: 'Talhão 09 (Milho)',
+    destino: 'Silo 01 Sede',
+    horario: '13:00',
+    velocidade: 42,
+    ultimoRastreio: '15:59:18 (há 12 seg)'
+  },
+  {
+    id: 'SOL-6448',
+    numeroOS: 'OS-2026-0014',
+    veiculoModelo: 'ONIBUS SCANIA K310',
+    veiculoPlaca: 'PQR-3344',
+    statusTexto: 'Em Execução',
+    statusTipo: 'em_execucao',
+    tipoServico: '19516 - TRANSPORTE DE FUNCIONÁRIOS',
+    motorista: 'Renato Mendonça',
+    solicitante: 'Recursos Humanos',
+    prioridade: 'Média',
+    origem: 'Cidade -> Fazenda',
+    destino: 'Setores Agrícolas',
+    horario: '13:15',
+    velocidade: 68,
+    ultimoRastreio: '15:59:02 (há 28 seg)'
+  },
+  {
+    id: 'SOL-6445',
+    numeroOS: 'OS-2026-0015',
+    veiculoModelo: 'TRATOR NEW HOLLAND T8',
+    veiculoPlaca: 'STU-5566',
+    statusTexto: 'Agendado',
+    statusTipo: 'agendado',
+    tipoServico: '19495 - SERVIÇO DE PREPARAÇÃO DE SOLO',
+    motorista: 'Gilberto Rocha',
+    solicitante: 'Engenharia Agronômica',
+    prioridade: 'Normal',
+    origem: 'Oficina',
+    destino: 'Talhão 15',
+    horario: '14:00',
+    velocidade: 0,
+    ultimoRastreio: '15:30:00 (há 29 min)'
+  },
+  {
+    id: 'SOL-6440',
+    numeroOS: 'OS-2026-0016',
+    veiculoModelo: 'TOYOTA HILUX SW4 FIELD',
+    veiculoPlaca: 'VWX-7788',
+    statusTexto: 'Em Execução',
+    statusTipo: 'em_execucao',
+    tipoServico: '19509 - INSPEÇÃO DE PIVÔS E FISCALIZAÇÃO',
+    motorista: 'Marcelo Viana',
+    solicitante: 'Diretoria de Operações',
+    prioridade: 'Urgente',
+    origem: 'Sede',
+    destino: 'Pivôs 01 ao 08',
+    horario: '14:15',
+    velocidade: 50,
+    ultimoRastreio: '15:59:22 (há 8 seg)'
+  },
+  {
+    id: 'SOL-6435',
+    numeroOS: 'OS-2026-0017',
+    veiculoModelo: 'CAMINHAO SCANIA R450',
+    veiculoPlaca: 'YZA-9900',
+    statusTexto: 'Em Execução',
+    statusTipo: 'em_execucao',
+    tipoServico: '19513 - TRANSPORTE DE DEFENSIVOS E INSUMOS',
+    motorista: 'Sérgio Antunes',
+    solicitante: 'Gerência Agrícola',
+    prioridade: 'Alta',
+    origem: 'Depósito Químico',
+    destino: 'Pivô 02',
+    horario: '14:30',
+    velocidade: 36,
+    ultimoRastreio: '15:58:45 (há 45 seg)'
+  },
+  {
+    id: 'SOL-6430',
+    numeroOS: 'OS-2026-0018',
+    veiculoModelo: 'CAÇAMBA MERCEDES ACTROS',
+    veiculoPlaca: 'BCD-1122',
+    statusTexto: 'Concluído',
+    statusTipo: 'concluido',
+    tipoServico: '19514 - REMOÇÃO DE TERRA E MANUTENÇÃO',
+    motorista: 'Tiago Faria',
+    solicitante: 'Obras Infraestrutura',
+    prioridade: 'Média',
+    origem: 'Estrada Sul',
+    destino: 'Borda do Açude',
+    horario: '06:30',
+    velocidade: 0,
+    ultimoRastreio: '12:00:00 (finalizado)'
   }
 ];
 
@@ -254,7 +356,7 @@ export const TelaTVMonitor = () => {
   const [autoScroll, setAutoScroll] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
 
-  const ITEMS_PER_PAGE = 7;
+  const ITEMS_PER_PAGE = 10; // Exibe 10 linhas por visualização
 
   // Mescla solicitações reais do contexto
   const osContextoFormatadas: TVOSItem[] = solicitacoes.map((s, idx) => ({
@@ -272,7 +374,7 @@ export const TelaTVMonitor = () => {
     destino: s.destino,
     horario: s.horarioProgramado || '08:00',
     velocidade: 40 + (idx * 5) % 30,
-    ultimoRastreio: `15:58:${(10 + idx * 7) % 60} (há 30 seg)`
+    ultimoRastreio: `15:59:${(10 + idx * 7) % 60} (há 20 seg)`
   }));
 
   const allItems = [...osContextoFormatadas, ...DEMO_OS_LIST].filter(
@@ -446,14 +548,14 @@ export const TelaTVMonitor = () => {
                     ? 'bg-slate-900 text-slate-200 border-slate-800' 
                     : 'bg-slate-950 text-slate-300 border-slate-800'
                 }`}>
-                  <th className="py-4 px-4 w-32 font-mono text-center">OS / Chamado</th>
-                  <th className="py-4 px-4 w-40">Status</th>
-                  <th className="py-4 px-5 font-extrabold">Serviço & Rota</th>
-                  <th className="py-4 px-5">Veículo & Placa</th>
-                  <th className="py-4 px-4">Motorista Alocado</th>
-                  <th className="py-4 px-4">Solicitante</th>
-                  <th className="py-4 px-4">Último Rastreio</th>
-                  <th className="py-4 px-4 w-28 text-center">Prioridade</th>
+                  <th className="py-3.5 px-4 w-32 font-mono text-center">OS / Chamado</th>
+                  <th className="py-3.5 px-4 w-40">Status</th>
+                  <th className="py-3.5 px-5 font-extrabold">Serviço & Rota</th>
+                  <th className="py-3.5 px-5">Veículo & Placa</th>
+                  <th className="py-3.5 px-4">Motorista Alocado</th>
+                  <th className="py-3.5 px-4">Solicitante</th>
+                  <th className="py-3.5 px-4">Último Rastreio</th>
+                  <th className="py-3.5 px-4 w-28 text-center">Prioridade</th>
                 </tr>
               </thead>
 
@@ -488,23 +590,23 @@ export const TelaTVMonitor = () => {
                       }`}
                     >
                       {/* OS NUMERO (EM UMA SO LINHA) */}
-                      <td className="py-4 px-4 font-mono font-bold text-slate-900 text-sm text-center whitespace-nowrap">
-                        <span className="bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 shadow-xs text-slate-800">
+                      <td className="py-3 px-4 font-mono font-bold text-slate-900 text-xs sm:text-sm text-center whitespace-nowrap">
+                        <span className="bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200 shadow-xs text-slate-800">
                           {item.numeroOS}
                         </span>
                       </td>
 
                       {/* STATUS BADGE (EM UMA SO LINHA) */}
-                      <td className="py-4 px-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${badgeStatus}`}>
-                          <span className={`w-2 h-2 rounded-full ${dotStatus} mr-2 animate-pulse`}></span>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${badgeStatus}`}>
+                          <span className={`w-2 h-2 rounded-full ${dotStatus} mr-1.5 animate-pulse`}></span>
                           {item.statusTexto}
                         </span>
                       </td>
 
                       {/* SERVIÇO E ROTA (EM UMA SO LINHA COM BULLET) */}
-                      <td className="py-4 px-5 whitespace-nowrap">
-                        <span className="font-bold text-slate-800 text-sm">
+                      <td className="py-3 px-5 whitespace-nowrap">
+                        <span className="font-bold text-slate-800 text-xs sm:text-sm">
                           {item.tipoServico}
                         </span>
                         <span className="text-xs font-semibold text-slate-400 mx-2">•</span>
@@ -515,7 +617,7 @@ export const TelaTVMonitor = () => {
                       </td>
 
                       {/* VEÍCULO & PLACA (EM UMA SO LINHA) */}
-                      <td className="py-4 px-5 whitespace-nowrap">
+                      <td className="py-3 px-5 whitespace-nowrap">
                         <span className="inline-flex items-center text-xs font-bold text-slate-800">
                           <Truck size={14} className="mr-1.5 text-emerald-700 shrink-0" />
                           {item.veiculoModelo}
@@ -526,7 +628,7 @@ export const TelaTVMonitor = () => {
                       </td>
 
                       {/* MOTORISTA (EM UMA SO LINHA) */}
-                      <td className="py-4 px-4 whitespace-nowrap">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <span className="text-xs font-bold text-slate-800 inline-flex items-center">
                           <User size={13} className="mr-1.5 text-slate-400 shrink-0" />
                           {item.motorista}
@@ -534,21 +636,21 @@ export const TelaTVMonitor = () => {
                       </td>
 
                       {/* SOLICITANTE (EM UMA SO LINHA) */}
-                      <td className="py-4 px-4 text-xs font-medium text-slate-600 whitespace-nowrap">
+                      <td className="py-3 px-4 text-xs font-medium text-slate-600 whitespace-nowrap">
                         {item.solicitante}
                       </td>
 
-                      {/* COLUNA: ÚLTIMO HORÁRIO DE RASTREIO (SOLICITADO) */}
-                      <td className="py-4 px-4 text-xs font-mono font-semibold text-slate-600 whitespace-nowrap">
-                        <span className="inline-flex items-center text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      {/* COLUNA: ÚLTIMO HORÁRIO DE RASTREIO */}
+                      <td className="py-3 px-4 text-xs font-mono font-semibold text-slate-600 whitespace-nowrap">
+                        <span className="inline-flex items-center text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
                           <Radio size={12} className="mr-1.5 text-emerald-600 animate-pulse" />
                           {item.ultimoRastreio}
                         </span>
                       </td>
 
                       {/* PRIORIDADE (EM UMA SO LINHA) */}
-                      <td className="py-4 px-4 text-center whitespace-nowrap">
-                        <span className={`inline-block px-3 py-1 rounded-lg text-xs font-bold border ${prioridadeClass}`}>
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        <span className={`inline-block px-3 py-0.5 rounded-lg text-xs font-bold border ${prioridadeClass}`}>
                           {item.prioridade}
                         </span>
                       </td>
@@ -560,7 +662,7 @@ export const TelaTVMonitor = () => {
           </div>
 
           {/* RODAPÉ DA TABELA NO ESTILO AGROTECH */}
-          <div className={`px-6 py-4 border-t flex items-center justify-between text-xs font-bold ${
+          <div className={`px-6 py-3 border-t flex items-center justify-between text-xs font-bold ${
             themeMode === 'light' ? 'bg-slate-50 text-slate-600 border-slate-200' : 'bg-slate-950 text-slate-400 border-slate-800'
           }`}>
             <div className="flex items-center space-x-2">
