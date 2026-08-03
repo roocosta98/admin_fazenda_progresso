@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAppContext } from '../../../context/AppContext';
 import { useAuth } from '../../../context/AuthContext';
 import { 
@@ -65,8 +65,9 @@ const PROJETOS_SANKHYA = [
   { id: '6010700', codigo: '6010700', descricao: '6010700 - INFRAESTRUTURA E MANUTENÇÃO SEDE', nome: 'INFRAESTRUTURA E MANUTENÇÃO SEDE', centroCusto: 'CC-6010700' },
 ];
 
-// 4. SOLICITANTES (Passo 4)
+// 4. SOLICITANTES (Passo 4 - Com a 1ª opção sendo "Eu (Próprio)")
 const SOLICITANTES_SANKHYA = [
+  { id: 'eu', codigo: '1000', descricao: 'EU (PRÓPRIO)', nome: 'Eu (Próprio)' },
   { id: '1001', codigo: '1001', descricao: '1001 - JOÃO - TÉCNICO DE CAMPO', nome: 'João - Técnico de Campo' },
   { id: '1002', codigo: '1002', descricao: '1002 - CARLOS - GESTOR DE FROTA', nome: 'Carlos - Gestor de Frota' },
   { id: '1003', codigo: '1003', descricao: '1003 - ANTÔNIO - OPERADOR LOGÍSTICO', nome: 'Antônio - Operador Logístico' },
@@ -75,7 +76,7 @@ const SOLICITANTES_SANKHYA = [
   { id: '1006', codigo: '1006', descricao: '1006 - FERNANDO ALVES - GERENTE AGRÍCOLA', nome: 'Fernando Alves - Gerente Agrícola' },
 ];
 
-// 5. CENTROS DE CUSTO (Passo 5)
+// 5. PROJETO / CENTRO DE CUSTO (Passo 5 - Exibido como PROJETO)
 const CENTROS_CUSTO_SANKHYA = [
   { id: '10101', codigo: '10101', descricao: '10101 - CC-BATATA-26 - PRODUÇÃO DE BATATA', centroCusto: 'CC-BATATA-26' },
   { id: '10102', codigo: '10102', descricao: '10102 - CC-SOJA-L-26 - SAFRA SOJA LESTE', centroCusto: 'CC-SOJA-L-26' },
@@ -112,7 +113,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
   const [veiculoSel, setVeiculoSel] = useState<typeof VEICULOS_SANKHYA[0] | null>(null);
   const [servicoSel, setServicoSel] = useState<typeof SERVICOS_SANKHYA[0] | null>(null);
   const [projetoSel, setProjetoSel] = useState<typeof PROJETOS_SANKHYA[0] | null>(null);
-  const [solicitanteSel, setSolicitanteSel] = useState<typeof SOLICITANTES_SANKHYA[0] | null>(null);
+  const [solicitanteSel, setSolicitanteSel] = useState<typeof SOLICITANTES_SANKHYA[0] | null>(SOLICITANTES_SANKHYA[0]);
   const [centroCustoSel, setCentroCustoSel] = useState<typeof CENTROS_CUSTO_SANKHYA[0] | null>(null);
 
   // Campos finais (Passo 6)
@@ -120,19 +121,10 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
   const [destino, setDestino] = useState(LOCAIS_SANKHYA[1]);
   const [dataProgramada, setDataProgramada] = useState(new Date().toISOString().split('T')[0]);
   const [horarioSaida, setHorarioSaida] = useState(''); // Opcional
-  const [horarioChegada, setHorarioChegada] = useState(''); // Opcional
   const [observacoes, setObservacoes] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
-
-  // Inicializa solicitante padrão se o usuário logar
-  useEffect(() => {
-    if (usuario && !solicitanteSel) {
-      const match = SOLICITANTES_SANKHYA.find(s => s.nome.toLowerCase().includes(usuario.nome.toLowerCase())) || SOLICITANTES_SANKHYA[0];
-      setSolicitanteSel(match);
-    }
-  }, [usuario, solicitanteSel]);
 
   const handleReset = () => {
     setCurrentStep(1);
@@ -140,13 +132,12 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
     setVeiculoSel(null);
     setServicoSel(null);
     setProjetoSel(null);
-    setSolicitanteSel(usuario ? (SOLICITANTES_SANKHYA.find(s => s.nome.toLowerCase().includes(usuario.nome.toLowerCase())) || SOLICITANTES_SANKHYA[0]) : null);
+    setSolicitanteSel(SOLICITANTES_SANKHYA[0]);
     setCentroCustoSel(null);
     setOrigem(LOCAIS_SANKHYA[0]);
     setDestino(LOCAIS_SANKHYA[1]);
     setDataProgramada(new Date().toISOString().split('T')[0]);
     setHorarioSaida('');
-    setHorarioChegada('');
     setObservacoes('');
   };
 
@@ -185,7 +176,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
   const handleSelectSolicitante = (item: typeof SOLICITANTES_SANKHYA[0]) => {
     setSolicitanteSel(item);
     setSearchTerm('');
-    setCurrentStep(5); // Avança para CENTRO DE CUSTO
+    setCurrentStep(5); // Avança para PROJETO (Centro de Custo)
   };
 
   const handleSelectCentroCusto = (item: typeof CENTROS_CUSTO_SANKHYA[0]) => {
@@ -201,20 +192,19 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
     setIsLoading(true);
 
     setTimeout(() => {
-      // Monta horário formatado (Se informado saída e/ou chegada)
       let horarioFormatado = '';
-      if (horarioSaida && horarioChegada) {
-        horarioFormatado = `Saída: ${horarioSaida} | Chegada Est.: ${horarioChegada}`;
-      } else if (horarioSaida) {
+      if (horarioSaida) {
         horarioFormatado = `Saída: ${horarioSaida}`;
-      } else if (horarioChegada) {
-        horarioFormatado = `Chegada Est.: ${horarioChegada}`;
       }
+
+      const nomeSolicitanteFinal = solicitanteSel.id === 'eu' 
+        ? (usuario?.nome || 'Eu (Próprio)') 
+        : solicitanteSel.nome;
 
       criarSolicitacao({
         solicitante: {
-          id: solicitanteSel.id,
-          nome: solicitanteSel.nome,
+          id: solicitanteSel.id === 'eu' ? (usuario?.id || 'eu') : solicitanteSel.id,
+          nome: nomeSolicitanteFinal,
           perfil: 'solicitante',
           departamento: 'Operações'
         },
@@ -252,7 +242,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
       case 2: return 'SERVIÇOS';
       case 3: return 'PROJETOS';
       case 4: return 'SOLICITANTE';
-      case 5: return 'CENTRO DE CUSTO';
+      case 5: return 'PROJETO';
       case 6: return 'DETALHES DA SOLICITAÇÃO';
     }
   };
@@ -272,7 +262,8 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
   );
 
   const filteredSolicitantes = SOLICITANTES_SANKHYA.filter(s => 
-    s.descricao.toLowerCase().includes(searchTerm.toLowerCase())
+    s.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.id === 'eu' && usuario?.nome && usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const filteredCentrosCusto = CENTROS_CUSTO_SANKHYA.filter(c => 
@@ -291,8 +282,8 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
       >
         <div className="flex flex-col h-full bg-slate-50 min-h-screen">
           
-          {/* Header Agro Verde (Conforme Referência das Imagens) */}
-          <div className="bg-[#1E7336] text-white px-4 py-4 sticky top-0 z-30 shadow-md">
+          {/* Header Azul Premium */}
+          <div className="bg-[#1E40AF] text-white px-4 py-4 sticky top-0 z-30 shadow-md">
             <div className="flex items-center justify-between">
               <button 
                 type="button" 
@@ -307,7 +298,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                 <h2 className="text-lg font-extrabold tracking-wider uppercase">
                   {getHeaderTitle()}
                 </h2>
-                <div className="text-[11px] font-medium text-emerald-100/90 tracking-wide mt-0.5">
+                <div className="text-[11px] font-medium text-blue-100/90 tracking-wide mt-0.5">
                   Passo {currentStep} de 6 — Seleção Sequencial
                 </div>
               </div>
@@ -322,20 +313,20 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
               </button>
             </div>
 
-            {/* Barra de Progresso Superior */}
-            <div className="w-full bg-emerald-950/40 h-1.5 rounded-full mt-3 overflow-hidden">
+            {/* Barra de Progresso Superior (Azul) */}
+            <div className="w-full bg-blue-950/40 h-1.5 rounded-full mt-3 overflow-hidden">
               <div 
-                className="bg-emerald-300 h-full transition-all duration-300 ease-out"
+                className="bg-blue-300 h-full transition-all duration-300 ease-out"
                 style={{ width: `${(currentStep / 6) * 100}%` }}
               ></div>
             </div>
           </div>
 
-          {/* Barra de Pesquisa (Passos 1 a 5 - Idêntica às fotos enviadas) */}
+          {/* Barra de Pesquisa (Passos 1 a 5 - Azul) */}
           {currentStep >= 1 && currentStep <= 5 && (
             <div className="p-4 bg-white border-b border-slate-200 shadow-sm sticky top-[76px] z-20">
-              <div className="relative flex items-center bg-slate-50 rounded-2xl border border-slate-200/80 px-3 py-2.5 focus-within:bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center mr-3 shrink-0">
+              <div className="relative flex items-center bg-slate-50 rounded-2xl border border-slate-200/80 px-3 py-2.5 focus-within:bg-white focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center mr-3 shrink-0">
                   <Search size={18} />
                 </div>
                 <input 
@@ -371,15 +362,15 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                     <div 
                       key={v.id}
                       onClick={() => handleSelectVeiculo(v)}
-                      className="flex items-center justify-between px-5 py-4 hover:bg-emerald-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
+                      className="flex items-center justify-between px-5 py-4 hover:bg-blue-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
                     >
                       <div className="flex items-center space-x-3 pr-4">
-                        <Truck size={18} className="text-slate-400 group-hover:text-emerald-600 shrink-0" />
-                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-emerald-900 leading-snug">
+                        <Truck size={18} className="text-slate-400 group-hover:text-blue-600 shrink-0" />
+                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-blue-900 leading-snug">
                           {v.descricao}
                         </span>
                       </div>
-                      <ChevronRight size={18} className="text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all shrink-0" />
+                      <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all shrink-0" />
                     </div>
                   ))
                 )}
@@ -396,15 +387,15 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                     <div 
                       key={s.id}
                       onClick={() => handleSelectServico(s)}
-                      className="flex items-center justify-between px-5 py-4 hover:bg-emerald-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
+                      className="flex items-center justify-between px-5 py-4 hover:bg-blue-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
                     >
                       <div className="flex items-center space-x-3 pr-4">
-                        <Wrench size={18} className="text-slate-400 group-hover:text-emerald-600 shrink-0" />
-                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-emerald-900 leading-snug">
+                        <Wrench size={18} className="text-slate-400 group-hover:text-blue-600 shrink-0" />
+                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-blue-900 leading-snug">
                           {s.descricao}
                         </span>
                       </div>
-                      <ChevronRight size={18} className="text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all shrink-0" />
+                      <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all shrink-0" />
                     </div>
                   ))
                 )}
@@ -421,15 +412,15 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                     <div 
                       key={p.id}
                       onClick={() => handleSelectProjeto(p)}
-                      className="flex items-center justify-between px-5 py-4 hover:bg-emerald-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
+                      className="flex items-center justify-between px-5 py-4 hover:bg-blue-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
                     >
                       <div className="flex items-center space-x-3 pr-4">
-                        <FolderKanban size={18} className="text-slate-400 group-hover:text-emerald-600 shrink-0" />
-                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-emerald-900 leading-snug">
+                        <FolderKanban size={18} className="text-slate-400 group-hover:text-blue-600 shrink-0" />
+                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-blue-900 leading-snug">
                           {p.descricao}
                         </span>
                       </div>
-                      <ChevronRight size={18} className="text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all shrink-0" />
+                      <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all shrink-0" />
                     </div>
                   ))
                 )}
@@ -442,44 +433,55 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                 {filteredSolicitantes.length === 0 ? (
                   <div className="p-8 text-center text-slate-400 font-medium">Nenhum solicitante encontrado</div>
                 ) : (
-                  filteredSolicitantes.map((sol) => (
-                    <div 
-                      key={sol.id}
-                      onClick={() => handleSelectSolicitante(sol)}
-                      className="flex items-center justify-between px-5 py-4 hover:bg-emerald-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
-                    >
-                      <div className="flex items-center space-x-3 pr-4">
-                        <User size={18} className="text-slate-400 group-hover:text-emerald-600 shrink-0" />
-                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-emerald-900 leading-snug">
-                          {sol.descricao}
-                        </span>
+                  filteredSolicitantes.map((sol) => {
+                    const isEu = sol.id === 'eu';
+                    const textoExibicao = isEu 
+                      ? `EU (${usuario?.nome ? usuario.nome.toUpperCase() : 'PRÓPRIO SOLICITANTE'})` 
+                      : sol.descricao;
+
+                    return (
+                      <div 
+                        key={sol.id}
+                        onClick={() => handleSelectSolicitante(sol)}
+                        className={`flex items-center justify-between px-5 py-4 hover:bg-blue-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100 ${
+                          isEu ? 'bg-blue-50/40 font-bold' : ''
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3 pr-4">
+                          <User size={18} className={`${isEu ? 'text-blue-600' : 'text-slate-400'} group-hover:text-blue-600 shrink-0`} />
+                          <span className={`text-sm tracking-wide uppercase group-hover:text-blue-900 leading-snug ${
+                            isEu ? 'font-black text-blue-900' : 'font-semibold text-slate-800'
+                          }`}>
+                            {textoExibicao}
+                          </span>
+                        </div>
+                        <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all shrink-0" />
                       </div>
-                      <ChevronRight size={18} className="text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all shrink-0" />
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
 
-            {/* PASSO 5: CENTRO DE CUSTO */}
+            {/* PASSO 5: PROJETO (Substitui Centro de Custo) */}
             {currentStep === 5 && (
               <div className="divide-y divide-slate-100">
                 {filteredCentrosCusto.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400 font-medium">Nenhum centro de custo encontrado</div>
+                  <div className="p-8 text-center text-slate-400 font-medium">Nenhum projeto encontrado</div>
                 ) : (
                   filteredCentrosCusto.map((cc) => (
                     <div 
                       key={cc.id}
                       onClick={() => handleSelectCentroCusto(cc)}
-                      className="flex items-center justify-between px-5 py-4 hover:bg-emerald-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
+                      className="flex items-center justify-between px-5 py-4 hover:bg-blue-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
                     >
                       <div className="flex items-center space-x-3 pr-4">
-                        <Building2 size={18} className="text-slate-400 group-hover:text-emerald-600 shrink-0" />
-                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-emerald-900 leading-snug">
+                        <Building2 size={18} className="text-slate-400 group-hover:text-blue-600 shrink-0" />
+                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-blue-900 leading-snug">
                           {cc.descricao}
                         </span>
                       </div>
-                      <ChevronRight size={18} className="text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all shrink-0" />
+                      <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all shrink-0" />
                     </div>
                   ))
                 )}
@@ -494,55 +496,57 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                 <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Itens Selecionados</span>
-                    <span className="text-[11px] text-emerald-600 font-bold">5 de 5 Escolhidos</span>
+                    <span className="text-[11px] text-blue-600 font-bold">5 de 5 Escolhidos</span>
                   </div>
 
                   <div className="space-y-2 text-xs">
                     <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="font-semibold text-slate-600 flex items-center"><Truck size={14} className="mr-2 text-emerald-600" /> Veículo:</span>
+                      <span className="font-semibold text-slate-600 flex items-center"><Truck size={14} className="mr-2 text-blue-600" /> Veículo:</span>
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-slate-800">{veiculoSel?.descricao}</span>
-                        <button onClick={() => setCurrentStep(1)} className="text-emerald-600 hover:text-emerald-800 p-1" title="Alterar">
+                        <button onClick={() => setCurrentStep(1)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
                           <Edit3 size={14} />
                         </button>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="font-semibold text-slate-600 flex items-center"><Wrench size={14} className="mr-2 text-emerald-600" /> Serviço:</span>
+                      <span className="font-semibold text-slate-600 flex items-center"><Wrench size={14} className="mr-2 text-blue-600" /> Serviço:</span>
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-slate-800">{servicoSel?.descricao}</span>
-                        <button onClick={() => setCurrentStep(2)} className="text-emerald-600 hover:text-emerald-800 p-1" title="Alterar">
+                        <button onClick={() => setCurrentStep(2)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
                           <Edit3 size={14} />
                         </button>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="font-semibold text-slate-600 flex items-center"><FolderKanban size={14} className="mr-2 text-emerald-600" /> Projeto:</span>
+                      <span className="font-semibold text-slate-600 flex items-center"><FolderKanban size={14} className="mr-2 text-blue-600" /> Projeto:</span>
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-slate-800">{projetoSel?.descricao}</span>
-                        <button onClick={() => setCurrentStep(3)} className="text-emerald-600 hover:text-emerald-800 p-1" title="Alterar">
+                        <button onClick={() => setCurrentStep(3)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
                           <Edit3 size={14} />
                         </button>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="font-semibold text-slate-600 flex items-center"><User size={14} className="mr-2 text-emerald-600" /> Solicitante:</span>
+                      <span className="font-semibold text-slate-600 flex items-center"><User size={14} className="mr-2 text-blue-600" /> Solicitante:</span>
                       <div className="flex items-center space-x-2">
-                        <span className="font-bold text-slate-800">{solicitanteSel?.descricao}</span>
-                        <button onClick={() => setCurrentStep(4)} className="text-emerald-600 hover:text-emerald-800 p-1" title="Alterar">
+                        <span className="font-bold text-slate-800">
+                          {solicitanteSel?.id === 'eu' ? `EU (${usuario?.nome?.toUpperCase() || 'PRÓPRIO SOLICITANTE'})` : solicitanteSel?.descricao}
+                        </span>
+                        <button onClick={() => setCurrentStep(4)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
                           <Edit3 size={14} />
                         </button>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="font-semibold text-slate-600 flex items-center"><Building2 size={14} className="mr-2 text-emerald-600" /> Centro de Custo:</span>
+                      <span className="font-semibold text-slate-600 flex items-center"><Building2 size={14} className="mr-2 text-blue-600" /> Projeto (Centro Custo):</span>
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-slate-800">{centroCustoSel?.descricao}</span>
-                        <button onClick={() => setCurrentStep(5)} className="text-emerald-600 hover:text-emerald-800 p-1" title="Alterar">
+                        <button onClick={() => setCurrentStep(5)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
                           <Edit3 size={14} />
                         </button>
                       </div>
@@ -556,7 +560,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                   {/* Seleção de Origem e Destino (Lista Personalizada Sankhya - Sem Digitação Livre) */}
                   <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
                     <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center border-b border-slate-100 pb-2">
-                      <MapPin size={16} className="mr-2 text-emerald-600" /> Rota (Lista Personalizada Sankhya)
+                      <MapPin size={16} className="mr-2 text-blue-600" /> Rota (Lista Personalizada Sankhya)
                     </h3>
 
                     <div className="space-y-4">
@@ -566,7 +570,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                         </label>
                         <select
                           required
-                          className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-600 transition-all bg-white text-sm font-semibold text-slate-800 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%231E7336%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat shadow-sm"
+                          className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all bg-white text-sm font-semibold text-slate-800 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%231E40AF%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat shadow-sm"
                           value={origem}
                           onChange={(e) => setOrigem(e.target.value)}
                         >
@@ -582,7 +586,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                         </label>
                         <select
                           required
-                          className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-600 transition-all bg-white text-sm font-semibold text-slate-800 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%231E7336%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat shadow-sm"
+                          className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all bg-white text-sm font-semibold text-slate-800 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%231E40AF%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat shadow-sm"
                           value={destino}
                           onChange={(e) => setDestino(e.target.value)}
                         >
@@ -594,13 +598,13 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                     </div>
                   </div>
 
-                  {/* Agendamento e Horários Opcionais */}
+                  {/* Agendamento de Data e Hora Saída Opcional */}
                   <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
                     <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center border-b border-slate-100 pb-2">
-                      <Calendar size={16} className="mr-2 text-emerald-600" /> Programação de Data e Horários
+                      <Calendar size={16} className="mr-2 text-blue-600" /> Programação de Data e Horário
                     </h3>
 
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
                           Data Programada <span className="text-red-500">*</span>
@@ -608,39 +612,23 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                         <input 
                           type="date" 
                           required
-                          className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-600 shadow-sm"
+                          className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 shadow-sm"
                           value={dataProgramada}
                           onChange={(e) => setDataProgramada(e.target.value)}
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wide">
-                            Hora Saída <span className="text-slate-400 font-normal lowercase">(opcional)</span>
-                          </label>
-                          <div className="relative">
-                            <input 
-                              type="time" 
-                              className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-600 shadow-sm"
-                              value={horarioSaida}
-                              onChange={(e) => setHorarioSaida(e.target.value)}
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wide">
-                            Hora Chegada / Final <span className="text-slate-400 font-normal lowercase">(opcional)</span>
-                          </label>
-                          <div className="relative">
-                            <input 
-                              type="time" 
-                              className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-600 shadow-sm"
-                              value={horarioChegada}
-                              onChange={(e) => setHorarioChegada(e.target.value)}
-                            />
-                          </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wide">
+                          Hora Saída <span className="text-slate-400 font-normal lowercase">(opcional)</span>
+                        </label>
+                        <div className="relative">
+                          <input 
+                            type="time" 
+                            className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 shadow-sm"
+                            value={horarioSaida}
+                            onChange={(e) => setHorarioSaida(e.target.value)}
+                          />
                         </div>
                       </div>
                     </div>
@@ -649,12 +637,12 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                   {/* Observações Adicionais */}
                   <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center">
-                      <FileText size={16} className="mr-2 text-emerald-600" /> Observações Adicionais <span className="text-slate-400 font-normal lowercase ml-1">(opcional)</span>
+                      <FileText size={16} className="mr-2 text-blue-600" /> Observações Adicionais <span className="text-slate-400 font-normal lowercase ml-1">(opcional)</span>
                     </label>
                     <textarea
                       rows={3}
                       placeholder="Instruções para o motorista, pontos de referência..."
-                      className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-600 resize-none shadow-sm"
+                      className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 resize-none shadow-sm"
                       value={observacoes}
                       onChange={(e) => setObservacoes(e.target.value)}
                     ></textarea>
@@ -673,7 +661,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="bg-emerald-700 hover:bg-emerald-800 text-white px-7 py-3 rounded-xl font-bold transition-all shadow-lg shadow-emerald-700/20 flex items-center text-sm disabled:opacity-70"
+                      className="bg-blue-700 hover:bg-blue-800 text-white px-7 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-700/20 flex items-center text-sm disabled:opacity-70"
                     >
                       {isLoading ? (
                         <div className="flex items-center">
@@ -700,8 +688,8 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
       {/* Modal de Sucesso */}
       <Modal isOpen={successModalOpen} onClose={handleFinish} title="Integração Concluída!">
         <div className="flex flex-col items-center justify-center p-8 text-center">
-          <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-6 relative">
-            <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20"></div>
+          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-6 relative">
+            <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-20"></div>
             <CheckCircle2 size={42} className="relative z-10" />
           </div>
           <h3 className="text-2xl font-black text-slate-800 mb-2">OS Gerada com Sucesso!</h3>
@@ -710,7 +698,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
           </p>
           <button
             onClick={handleFinish}
-            className="w-full bg-emerald-700 text-white py-3.5 rounded-xl font-bold hover:bg-emerald-800 transition-colors shadow-lg text-sm flex items-center justify-center"
+            className="w-full bg-blue-700 text-white py-3.5 rounded-xl font-bold hover:bg-blue-800 transition-colors shadow-lg text-sm flex items-center justify-center"
           >
             Acompanhar Pedidos
           </button>
