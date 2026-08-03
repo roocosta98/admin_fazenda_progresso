@@ -85,15 +85,16 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
 
   if (!solicitacao) return null;
 
-  const veiculosFiltrados = veiculos.filter(v => {
-    if (!solicitacao?.tipoServico) return true;
+  // Frota completa de veículos ordenada (mais compatíveis com o serviço no topo)
+  const veiculosOpcoes = [...veiculos].sort((a, b) => {
+    if (!solicitacao?.tipoServico) return 0;
     const servico = solicitacao.tipoServico.toLowerCase();
-    const tipo = v.tipo.toLowerCase();
-    const modelo = v.modelo.toLowerCase();
-    return servico.includes(tipo) || tipo.includes(servico) || servico.includes(modelo);
+    const matchA = servico.includes(a.tipo.toLowerCase()) || servico.includes(a.modelo.toLowerCase());
+    const matchB = servico.includes(b.tipo.toLowerCase()) || servico.includes(b.modelo.toLowerCase());
+    if (matchA && !matchB) return -1;
+    if (!matchA && matchB) return 1;
+    return 0;
   });
-
-  const veiculosOpcoes = veiculosFiltrados.length > 0 ? veiculosFiltrados : veiculos;
 
   return (
     <SlideOverDrawer isOpen={isOpen} onClose={onClose} title="Análise Logística" width="max-w-md">
