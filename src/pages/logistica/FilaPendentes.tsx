@@ -3,27 +3,43 @@ import { useAppContext } from '../../context/AppContext';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { StatCard } from '../../components/common/StatCard';
 import { DataTable } from '../../components/common/DataTable';
+import { Modal } from '../../components/common/Modal';
 import { AprovarSolicitacaoDrawer } from './components/AprovarSolicitacaoDrawer';
-import { Clock, Calendar, Truck, User as UserIcon, Search, CheckCircle2 } from 'lucide-react';
+import { SlideOverDrawer } from '../../components/common/SlideOverDrawer';
+import { Clock, Truck, User as UserIcon, Search, CheckCircle2, AlertTriangle, RefreshCw, Eye, MapPin, Calendar, FileText } from 'lucide-react';
 import type { SolicitacaoTransporte } from '../../types';
 
 export const FilaPendentes = () => {
-  const { solicitacoes, veiculos, motoristas } = useAppContext();
+  const { solicitacoes, veiculos, motoristas, substituirMotorista } = useAppContext();
   
+  const [activeTab, setActiveTab] = useState<'pendentes' | 'aprovados'>('pendentes');
+  const [busca, setBusca] = useState('');
+
   const pendentes = solicitacoes.filter(s => s.status === 'pendente');
-  const agendadasHoje = solicitacoes.filter(s => s.status === 'agendada' && s.dataProgramada === new Date().toISOString().split('T')[0]);
+  const aprovados = solicitacoes.filter(s => s.status === 'agendada' || s.status === 'em_execucao' || s.status === 'concluida');
+  
   const veiculosLivres = veiculos.filter(v => v.status === 'disponivel').length;
   const motoristasLivres = motoristas.filter(m => m.status === 'disponivel').length;
 
-  const [busca, setBusca] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [detalhesOpen, setDetalhesOpen] = useState(false);
   const [solicitacaoEmAnalise, setSolicitacaoEmAnalise] = useState<SolicitacaoTransporte | null>(null);
-  
+  const [solicitacaoVisualizar, setSolicitacaoVisualizar] = useState<SolicitacaoTransporte | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Modal para Trocar Motorista de OS Aprovada com Justificativa
+  const [substituirModal, setSubstituirModal] = useState<{ open: boolean; os: SolicitacaoTransporte | null }>({ open: false, os: null });
+  const [novoMotoristaId, setNovoMotoristaId] = useState('');
+  const [justificativaTroca, setJustificativaTroca] = useState('');
 
   const handleAnalise = (solicitacao: SolicitacaoTransporte) => {
     setSolicitacaoEmAnalise(solicitacao);
     setDrawerOpen(true);
+  };
+
+  const handleVerDetalhes = (solicitacao: SolicitacaoTransporte) => {
+    setSolicitacaoVisualizar(solicitacao);
+    setDetalhesOpen(true);
   };
 
   const handleSuccess = (message: string) => {
@@ -31,13 +47,26 @@ export const FilaPendentes = () => {
     setTimeout(() => setToastMessage(null), 5000); 
   };
 
-  const filteredPendentes = pendentes.filter(s => 
+  const handleConfirmarTrocaMotorista = () => {
+    if (substituirModal.os && novoMotoristaId && justificativaTroca.trim()) {
+      substituirMotorista(substituirModal.os.numeroOS, novoMotoristaId);
+      setSubstituirModal({ open: false, os: null });
+      setNovoMotoristaId('');
+      setJustificativaTroca('');
+      handleSuccess(`Motorista da OS ${substituirModal.os.numeroOS} trocado com sucesso! Justificativa registrada.`);
+    }
+  };
+
+  const listData = activeTab === 'pendentes' ? pendentes : aprovados;
+
+  const filteredData = listData.filter(s => 
     s.numeroOS.toLowerCase().includes(busca.toLowerCase()) || 
     s.tipoServico.toLowerCase().includes(busca.toLowerCase()) ||
-    s.projeto.nome.toLowerCase().includes(busca.toLowerCase())
+    s.projeto.nome.toLowerCase().includes(busca.toLowerCase()) ||
+    (s.motoristaAlocado && s.motoristaAlocado.nome.toLowerCase().includes(busca.toLowerCase()))
   );
 
-  const columns = [
+  const columnsPendentes = [
     {
       header: 'OS',
       accessor: 'numeroOS' as keyof SolicitacaoTransporte,
@@ -108,6 +137,96 @@ export const FilaPendentes = () => {
     }
   ];
 
+  const columnsAprovados = [
+    {
+      header: 'OS',
+      accessor: 'numeroOS' as keyof SolicitacaoTransporte,
+      render: (row: SolicitacaoTransporte) => (
+        <div>
+          <span className="font-bold text-slate-800">{row.numeroOS}</span>
+          <div className="mt-1"><StatusBadge status={row.status} /></div>
+        </div>
+      )
+    },
+    {
+      header: 'Serviço & Rota',
+      render: (row: SolicitacaoTransporte) => (
+        <div>
+          <div className="font-medium text-slate-800 flex items-center">
+            <Truck size={14} className="mr-1 text-emerald-600" /> {row.tipoServico}
+          </div>
+          <div className="text-xs text-slate-500 mt-1">
+            {row.origem} &rarr; {row.destino}
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Veículo Alocado',
+      render: (row: SolicitacaoTransporte) => row.veiculoAlocado ? (
+        <div>
+          <div className="font-bold text-slate-800">{row.veiculoAlocado.modelo}</div>
+          <div className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 w-fit mt-0.5">{row.veiculoAlocado.placa}</div>
+        </div>
+      ) : <span className="text-slate-400 font-medium">-</span>
+    },
+    {
+      header: 'Motorista Alocado',
+      render: (row: SolicitacaoTransporte) => (
+        <div className="flex items-center justify-between group/mot pr-2">
+          <div>
+            <div className="font-bold text-slate-800 flex items-center text-xs">
+              <UserIcon size={13} className="mr-1.5 text-blue-600 shrink-0" /> {row.motoristaAlocado?.nome || 'Não atribuído'}
+            </div>
+            {row.motoristaAlocado?.telefone && (
+              <div className="text-[11px] text-slate-400 font-mono mt-0.5">{row.motoristaAlocado.telefone}</div>
+            )}
+          </div>
+          <button
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              setSubstituirModal({ open: true, os: row });
+            }}
+            title="Trocar Motorista"
+            className="p-1.5 text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-200/60 flex items-center shrink-0 ml-2"
+          >
+            <RefreshCw size={13} />
+          </button>
+        </div>
+      )
+    },
+    {
+      header: 'Data Programada',
+      render: (row: SolicitacaoTransporte) => (
+        <div>
+          <div className="text-xs text-slate-800 font-bold">
+            {row.dataProgramada ? new Date(row.dataProgramada).toLocaleDateString('pt-BR') : '-'}
+          </div>
+          {row.horarioProgramado && (
+            <div className="text-[11px] text-slate-500 mt-0.5 flex items-center">
+              <Clock size={11} className="mr-1 text-slate-400" /> {row.horarioProgramado}
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      header: 'Ações',
+      align: 'right' as const,
+      render: (row: SolicitacaoTransporte) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleVerDetalhes(row);
+          }}
+          className="inline-flex items-center px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+        >
+          <Eye size={13} className="mr-1.5 text-slate-300" /> Ver Detalhes
+        </button>
+      )
+    }
+  ];
+
   return (
     <div className="space-y-6 pb-12">
       {toastMessage && (
@@ -119,45 +238,260 @@ export const FilaPendentes = () => {
 
       <div>
         <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Fila de Aprovação Operacional</h2>
-        <p className="text-slate-500 mt-1">Gerencie, aprove e aloque recursos para os chamados pendentes.</p>
+        <p className="text-slate-500 mt-1">Gerencie, aprove, aloque recursos e acompanhe os chamados aprovados.</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Pendentes" value={pendentes.length} icon={<Clock size={24} />} colorClass="text-amber-600 bg-amber-500" />
-        <StatCard title="Agendadas (Hoje)" value={agendadasHoje.length} icon={<Calendar size={24} />} colorClass="text-blue-600 bg-blue-500" />
-        <StatCard title="Veículos Livres" value={veiculosLivres} icon={<Truck size={24} />} colorClass="text-emerald-600 bg-emerald-500" />
+        <StatCard title="Aprovados / Agendados" value={aprovados.length} icon={<CheckCircle2 size={24} />} colorClass="text-emerald-600 bg-emerald-500" />
+        <StatCard title="Veículos Livres" value={veiculosLivres} icon={<Truck size={24} />} colorClass="text-blue-600 bg-blue-500" />
         <StatCard title="Motoristas Livres" value={motoristasLivres} icon={<UserIcon size={24} />} colorClass="text-indigo-600 bg-indigo-500" />
       </div>
 
-      <div className="bg-white p-2 rounded-2xl shadow-soft border border-slate-200/80 flex items-center">
-        <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search size={18} className="text-slate-400" />
+      {/* Seletor de Abas: Pendentes x Aprovados */}
+      <div className="bg-white p-2 rounded-2xl shadow-soft border border-slate-200/80 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-auto">
+          <button
+            onClick={() => setActiveTab('pendentes')}
+            className={`flex-1 md:flex-none px-6 py-2.5 text-xs font-extrabold uppercase tracking-wider rounded-lg transition-all ${
+              activeTab === 'pendentes' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Pendentes de Análise ({pendentes.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('aprovados')}
+            className={`flex-1 md:flex-none px-6 py-2.5 text-xs font-extrabold uppercase tracking-wider rounded-lg transition-all ${
+              activeTab === 'aprovados' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Aprovados & Agendados ({aprovados.length})
+          </button>
+        </div>
+
+        {/* Campo de Pesquisa */}
+        <div className="relative w-full md:w-80 px-2">
+          <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+            <Search size={16} className="text-slate-400" />
           </div>
           <input
             type="text"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por OS, serviço ou projeto..."
-            className="block w-full pl-11 pr-4 py-3 border-none bg-transparent focus:ring-0 text-slate-800 placeholder-slate-400 font-medium"
+            className="block w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50 text-xs font-medium transition-all"
           />
         </div>
       </div>
 
-      <DataTable 
-        columns={columns} 
-        data={filteredPendentes} 
-        keyExtractor={(row) => row.id}
-        onRowClick={handleAnalise}
-        emptyMessage="Fila Limpa! Não há solicitações pendentes no momento."
-      />
+      {activeTab === 'pendentes' ? (
+        <DataTable 
+          columns={columnsPendentes} 
+          data={filteredData} 
+          keyExtractor={(row) => row.id}
+          onRowClick={handleAnalise}
+          emptyMessage="Fila Limpa! Não há solicitações pendentes no momento."
+        />
+      ) : (
+        <DataTable 
+          columns={columnsAprovados} 
+          data={filteredData} 
+          keyExtractor={(row) => row.id}
+          onRowClick={handleVerDetalhes}
+          emptyMessage="Nenhuma solicitação aprovada encontrada."
+        />
+      )}
 
+      {/* Drawer de Visualização de Detalhes da OS Aprovada */}
+      <SlideOverDrawer 
+        isOpen={detalhesOpen} 
+        onClose={() => setDetalhesOpen(false)} 
+        title={`Detalhes da OS: ${solicitacaoVisualizar?.numeroOS}`}
+      >
+        {solicitacaoVisualizar && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <span className="text-slate-500 font-medium text-sm">Status Atual</span>
+              <StatusBadge status={solicitacaoVisualizar.status} />
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-bold text-slate-800 uppercase tracking-wide text-xs">Informações Gerais</h4>
+              
+              <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-100">
+                <div className="flex items-start">
+                  <UserIcon className="w-4 h-4 text-slate-400 mt-0.5 mr-3" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase">Solicitante</p>
+                    <p className="text-slate-800 font-bold text-sm">{solicitacaoVisualizar.solicitante.nome} <span className="text-slate-400 font-normal">({solicitacaoVisualizar.solicitante.departamento})</span></p>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <Truck className="w-4 h-4 text-slate-400 mt-0.5 mr-3" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase">Serviço Solicitado</p>
+                    <p className="text-slate-800 font-medium text-sm">{solicitacaoVisualizar.tipoServico}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <MapPin className="w-4 h-4 text-slate-400 mt-0.5 mr-3" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase">Rota Desejada</p>
+                    <p className="text-slate-800 font-medium text-sm">{solicitacaoVisualizar.origem} &rarr; {solicitacaoVisualizar.destino}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <Calendar className="w-4 h-4 text-slate-400 mt-0.5 mr-3" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase">Agendamento Solicitado</p>
+                    <p className="text-slate-800 font-medium text-sm">
+                      {solicitacaoVisualizar.dataProgramada ? new Date(solicitacaoVisualizar.dataProgramada).toLocaleDateString('pt-BR') : '-'} 
+                      {solicitacaoVisualizar.horarioProgramado && ` às ${solicitacaoVisualizar.horarioProgramado}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-bold text-slate-800 uppercase tracking-wide text-xs">Alocação da Logística</h4>
+              <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 space-y-3">
+                <div className="flex items-start">
+                  <Truck className="w-4 h-4 text-emerald-600 mt-0.5 mr-3" />
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-700 uppercase">Veículo Alocado</p>
+                    <p className="text-slate-800 font-bold text-sm">
+                      {solicitacaoVisualizar.veiculoAlocado?.modelo || 'N/A'} 
+                      {solicitacaoVisualizar.veiculoAlocado?.placa && (
+                        <span className="font-mono font-normal text-slate-500 text-sm bg-white px-1.5 py-0.5 rounded ml-1.5 border border-emerald-200">
+                          {solicitacaoVisualizar.veiculoAlocado.placa}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start">
+                    <UserIcon className="w-4 h-4 text-emerald-600 mt-0.5 mr-3" />
+                    <div>
+                      <p className="text-xs font-semibold text-emerald-700 uppercase">Motorista Designado</p>
+                      <p className="text-slate-800 font-medium text-sm">{solicitacaoVisualizar.motoristaAlocado?.nome || 'Não atribuído'}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setDetalhesOpen(false);
+                      setSubstituirModal({ open: true, os: solicitacaoVisualizar });
+                    }}
+                    className="text-xs font-bold text-blue-600 hover:underline flex items-center"
+                  >
+                    <RefreshCw size={12} className="mr-1" /> Trocar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {solicitacaoVisualizar.observacoes && (
+              <div className="bg-slate-100 border border-slate-200 rounded-xl p-4">
+                <h4 className="font-bold text-slate-700 uppercase tracking-wide text-xs mb-1 flex items-center">
+                  <FileText size={13} className="mr-1.5" /> Observações do Solicitante
+                </h4>
+                <p className="text-slate-700 text-sm italic">"{solicitacaoVisualizar.observacoes}"</p>
+              </div>
+            )}
+
+            {solicitacaoVisualizar.observacaoLogistica && (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                <h4 className="font-bold text-blue-800 uppercase tracking-wide text-xs mb-1">Mensagem da Logística</h4>
+                <p className="text-slate-700 text-sm whitespace-pre-line">{solicitacaoVisualizar.observacaoLogistica}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </SlideOverDrawer>
+
+      {/* Drawer de Aprovação de Pendentes */}
       <AprovarSolicitacaoDrawer 
         isOpen={drawerOpen} 
         onClose={() => setDrawerOpen(false)} 
         solicitacao={solicitacaoEmAnalise} 
         onSuccess={handleSuccess}
       />
+
+      {/* Modal de Troca de Motorista com Justificativa Obrigatoria */}
+      <Modal 
+        isOpen={substituirModal.open} 
+        onClose={() => { setSubstituirModal({ open: false, os: null }); setNovoMotoristaId(''); setJustificativaTroca(''); }} 
+        title="Trocar Motorista de OS Aprovada"
+      >
+        <div className="p-6 space-y-5">
+          <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 flex items-start space-x-3">
+            <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-sm font-bold text-slate-800">Troca de Motorista em OS Aprovada</p>
+              <p className="text-xs text-slate-600 mt-1">
+                Substituição do motorista na <strong>{substituirModal.os?.numeroOS}</strong> ({substituirModal.os?.tipoServico}). 
+                É necessário informar o motivo da alteração.
+              </p>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
+              Novo Motorista Disponível <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={novoMotoristaId}
+              onChange={(e) => setNovoMotoristaId(e.target.value)}
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm font-medium appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat"
+            >
+              <option value="">Selecione o novo motorista...</option>
+              {motoristas
+                .filter(m => m.id !== substituirModal.os?.motoristaAlocado?.id)
+                .map(m => (
+                  <option key={m.id} value={m.id} disabled={m.status !== 'disponivel'}>
+                    {m.nome} ({m.status === 'disponivel' ? 'Disponível' : m.status})
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
+              Justificativa da Troca <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={3}
+              required
+              placeholder="Ex: Motorista anterior em atestado médico / Remanejamento emergencial de escala..."
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 resize-none shadow-sm font-medium text-slate-800"
+              value={justificativaTroca}
+              onChange={(e) => setJustificativaTroca(e.target.value)}
+            ></textarea>
+          </div>
+
+          <div className="pt-2 flex justify-end space-x-3">
+            <button 
+              type="button"
+              onClick={() => { setSubstituirModal({ open: false, os: null }); setNovoMotoristaId(''); setJustificativaTroca(''); }}
+              className="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors text-sm"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmarTrocaMotorista}
+              disabled={!novoMotoristaId || !justificativaTroca.trim()}
+              className="px-6 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center"
+            >
+              <RefreshCw size={15} className="mr-2" /> Confirmar Troca
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

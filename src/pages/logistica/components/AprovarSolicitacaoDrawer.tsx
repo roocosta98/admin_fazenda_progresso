@@ -29,11 +29,16 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
   const [isLoading, setIsLoading] = useState(false);
   const [manutencaoModalOpen, setManutencaoModalOpen] = useState(false);
 
+  const [notificarSolicitante, setNotificarSolicitante] = useState(true);
+  const [observacaoAprovacao, setObservacaoAprovacao] = useState('');
+
   useEffect(() => {
     if (solicitacao) {
       setHorarioConfirmado(solicitacao.horarioProgramado || '');
       setNovaData(solicitacao.dataProgramada || '');
       setNovoHorario(solicitacao.horarioProgramado || '');
+      setObservacaoAprovacao('');
+      setNotificarSolicitante(true);
       setActiveTab('alocar');
     }
   }, [solicitacao, isOpen]);
@@ -42,9 +47,16 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
     if (!solicitacao || !veiculoId || !motoristaId) return;
     setIsLoading(true);
     setTimeout(() => {
-      aprovarEAgendarSolicitacao(solicitacao.numeroOS, veiculoId, motoristaId, horarioConfirmado);
+      aprovarEAgendarSolicitacao(
+        solicitacao.numeroOS, 
+        veiculoId, 
+        motoristaId, 
+        horarioConfirmado, 
+        observacaoAprovacao, 
+        notificarSolicitante
+      );
       setIsLoading(false);
-      onSuccess(`${solicitacao.numeroOS} Aprovada! Integrada ao Sankhya e notificação WhatsApp disparada.`);
+      onSuccess(`${solicitacao.numeroOS} Aprovada! ${notificarSolicitante ? 'Notificação enviada ao solicitante.' : ''}`);
       onClose();
     }, 800);
   };
@@ -85,16 +97,18 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
 
   if (!solicitacao) return null;
 
-  // Frota completa de veículos ordenada (mais compatíveis com o serviço no topo)
-  const veiculosOpcoes = [...veiculos].sort((a, b) => {
-    if (!solicitacao?.tipoServico) return 0;
-    const servico = solicitacao.tipoServico.toLowerCase();
-    const matchA = servico.includes(a.tipo.toLowerCase()) || servico.includes(a.modelo.toLowerCase());
-    const matchB = servico.includes(b.tipo.toLowerCase()) || servico.includes(b.modelo.toLowerCase());
-    if (matchA && !matchB) return -1;
-    if (!matchA && matchB) return 1;
-    return 0;
-  });
+  // Frota completa de veículos ordenada (excluindo tratores e ordenada pelos mais compatíveis no topo)
+  const veiculosOpcoes = veiculos
+    .filter(v => v.tipo.toLowerCase() !== 'trator')
+    .sort((a, b) => {
+      if (!solicitacao?.tipoServico) return 0;
+      const servico = solicitacao.tipoServico.toLowerCase();
+      const matchA = servico.includes(a.tipo.toLowerCase()) || servico.includes(a.modelo.toLowerCase());
+      const matchB = servico.includes(b.tipo.toLowerCase()) || servico.includes(b.modelo.toLowerCase());
+      if (matchA && !matchB) return -1;
+      if (!matchA && matchB) return 1;
+      return 0;
+    });
 
   return (
     <SlideOverDrawer isOpen={isOpen} onClose={onClose} title="Análise Logística" width="max-w-md">
@@ -212,6 +226,34 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
                   onChange={(e) => setHorarioConfirmado(e.target.value)}
                   className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm font-medium"
                 />
+              </div>
+
+              {/* Campo de Observação Livre da Logística */}
+              <div className="group/input">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center">
+                  <FileText size={14} className="mr-1.5 text-slate-500" /> Observações para a Operação / Solicitante <span className="text-slate-400 font-normal lowercase ml-1">(opcional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Ex: Motorista irá aguardar no galpão 02. Chegar 15 minutos antes do horário..."
+                  className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white shadow-sm font-medium text-slate-800 resize-none"
+                  value={observacaoAprovacao}
+                  onChange={(e) => setObservacaoAprovacao(e.target.value)}
+                ></textarea>
+              </div>
+
+              {/* Checkbox para Enviar Notificação ao Solicitante */}
+              <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3.5 flex items-center space-x-3 cursor-pointer select-none" onClick={() => setNotificarSolicitante(!notificarSolicitante)}>
+                <input 
+                  type="checkbox"
+                  id="notificarSolicitante"
+                  checked={notificarSolicitante}
+                  onChange={(e) => setNotificarSolicitante(e.target.checked)}
+                  className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                />
+                <label htmlFor="notificarSolicitante" className="text-xs font-bold text-slate-800 cursor-pointer leading-tight">
+                  Enviar notificação de aprovação e detalhes para o solicitante (WhatsApp / Push)
+                </label>
               </div>
 
               <div className="mt-auto pt-6 pb-2">

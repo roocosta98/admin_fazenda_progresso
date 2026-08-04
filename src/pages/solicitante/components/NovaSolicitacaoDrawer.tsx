@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useAppContext } from '../../../context/AppContext';
 import { useAuth } from '../../../context/AuthContext';
 import { 
-  Truck, 
   MapPin, 
   Calendar, 
   FileText, 
@@ -13,10 +12,10 @@ import {
   ChevronRight, 
   User, 
   Zap,
-  Building2,
   FolderKanban,
   Wrench,
-  Edit3
+  Edit3,
+  Layers
 } from 'lucide-react';
 import { Modal } from '../../../components/common/Modal';
 import { SlideOverDrawer } from '../../../components/common/SlideOverDrawer';
@@ -27,34 +26,70 @@ interface NovaSolicitacaoDrawerProps {
   onSuccess: () => void;
 }
 
-// 1. VEÍCULOS (Passo 1)
-const VEICULOS_SANKHYA = [
-  { id: '25', codigo: '25', descricao: '25 - ONIBUS M.BENZ 1318 - Placa: BXE7320', modelo: 'M.BENZ 1318', tipo: 'Ônibus', placa: 'BXE7320' },
-  { id: '29', codigo: '29', descricao: '29 - CAÇAMBA M.BENZ 1513 - Placa: CXU6289', modelo: 'M.BENZ 1513', tipo: 'Caçamba', placa: 'CXU6289' },
-  { id: '32', codigo: '32', descricao: '32 - ONIBUS M.BENZ 1620 - Placa: ICM1818', modelo: 'M.BENZ 1620', tipo: 'Ônibus', placa: 'ICM1818' },
-  { id: '35', codigo: '35', descricao: '35 - CAMINHAO M.BENZ 1313 - Placa: IEU7100', modelo: 'M.BENZ 1313', tipo: 'Caminhão', placa: 'IEU7100' },
-  { id: '36', codigo: '36', descricao: '36 - CAVALO MECANICO M.BENZ/ LS 1935 - Placa: ICY0877', modelo: 'M.BENZ/ LS 1935', tipo: 'Prancha', placa: 'ICY0877' },
-  { id: '40', codigo: '40', descricao: '40 - PICK-UP TOYOTA HILUX 4X4 - Placa: JKL9012', modelo: 'Toyota Hilux', tipo: 'Pick-up', placa: 'JKL9012' },
-  { id: '42', codigo: '42', descricao: '42 - TRATOR JOHN DEERE 8335R - Placa: MNO3456', modelo: 'John Deere 8335R', tipo: 'Trator', placa: 'MNO3456' },
-  { id: '45', codigo: '45', descricao: '45 - COMBOIO MERCEDES BENZ 2726 - Placa: PQR7890', modelo: 'MB 2726', tipo: 'Comboio', placa: 'PQR7890' },
-  { id: '48', codigo: '48', descricao: '48 - PRANCHA 3 EIXOS HEAVY DUTY - Placa: ABC1234', modelo: 'Prancha 3 Eixos', tipo: 'Prancha', placa: 'ABC1234' },
+// 1. LOCAIS SANKHYA (Origem / Destino - Passos 1 e 2)
+const LOCAIS_SANKHYA = [
+  { id: 'LOC-101', codigo: '101', descricao: '101 - FAZENDA PROGRESSO - SEDE CENTRAL', nome: 'Fazenda Progresso - Sede' },
+  { id: 'LOC-102', codigo: '102', descricao: '102 - SILO PRINCIPAL / ARMAZÉM DE GRÃOS', nome: 'Silo Principal / Armazém' },
+  { id: 'LOC-103', codigo: '103', descricao: '103 - OFICINA CENTRAL & POSTO ABASTECIMENTO', nome: 'Oficina Central & Posto' },
+  { id: 'LOC-104', codigo: '104', descricao: '104 - GALPÃO DE INSUMOS E DEFENSIVOS', nome: 'Galpão de Insumos' },
+  { id: 'LOC-105', codigo: '105', descricao: '105 - PIVÔ 01 - CAMPO DE BATATA SEMENTE', nome: 'Pivô 01 - Batata Semente' },
+  { id: 'LOC-106', codigo: '106', descricao: '106 - PIVÔ 04 - CAMPO DE SILAGEM', nome: 'Pivô 04 - Silagem' },
+  { id: 'LOC-107', codigo: '107', descricao: '107 - TALHÃO 12 - SAFRA SOJA LESTE', nome: 'Talhão 12 - Soja Leste' },
+  { id: 'LOC-108', codigo: '108', descricao: '108 - TALHÃO 15 - CAMPO DE MILHO', nome: 'Talhão 15 - Campo de Milho' },
+  { id: 'LOC-109', codigo: '109', descricao: '109 - PEDREIRA / USINA DE BRITAGEM', nome: 'Pedreira / Usina' },
+  { id: 'LOC-110', codigo: '110', descricao: '110 - BALANÇA ROVIARA ENTRADA', nome: 'Balança Roviara' },
+  { id: 'LOC-111', codigo: '111', descricao: '111 - LAVA JATO & GARAGEM CENTRAL', nome: 'Lava Jato / Garagem' },
+  { id: 'LOC-112', codigo: '112', descricao: '112 - PONTO DE TRANSBORDO PORTO', nome: 'Ponto Transbordo Porto' }
 ];
 
-// 2. SERVIÇOS (Passo 2)
-const SERVICOS_SANKHYA = [
-  { id: '19495', codigo: '19495', descricao: '19495 - SERVIÇO DE SILAGEM' },
-  { id: '19509', codigo: '19509', descricao: '19509 - TRANS. MUDAS REFLORESTAMENTO' },
-  { id: '19510', codigo: '19510', descricao: '19510 - TRANSPORTE BATATA SEMENTE' },
-  { id: '19511', codigo: '19511', descricao: '19511 - TRANSPORTE DE ÁGUA' },
-  { id: '19512', codigo: '19512', descricao: '19512 - TRANSPORTE DE BATATA CONSUMO' },
-  { id: '19513', codigo: '19513', descricao: '19513 - TRANSPORTE DE ADUBO / INSUMOS' },
-  { id: '19514', codigo: '19514', descricao: '19514 - TRANSPORTE DE GRÃOS / COLHEITA' },
-  { id: '19515', codigo: '19515', descricao: '19515 - SOCORRO MECÂNICO / COMBOIO' },
-  { id: '19516', codigo: '19516', descricao: '19516 - TRANSPORTE DE FUNCIONÁRIOS' },
-  { id: '19517', codigo: '19517', descricao: '19517 - TRANSPORTE DE MÁQUINAS E EQUIPAMENTOS' },
+// 2. CATEGORIAS DE SERVIÇO (Passo 3 - Camada 1)
+const CATEGORIAS_SERVICO_SANKHYA = [
+  { id: 'CAT-VIAGEM', codigo: 'CAT-VIAGEM', nome: 'VIAGEM', descricao: 'Deslocamentos intermunicipais e rotas estaduais' },
+  { id: 'CAT-TRANSPORTE', codigo: 'CAT-TRANSPORTE', nome: 'TRANSPORTE', descricao: 'Transporte de produtos, insumos, pessoal e materiais' },
+  { id: 'CAT-COLHEITA', codigo: 'CAT-COLHEITA', nome: 'COLHEITA', descricao: 'Operações e apoio logístico de colheita' },
+  { id: 'CAT-OUTROS', codigo: 'CAT-OUTROS', nome: 'OUTROS', descricao: 'Outros serviços e atendimentos diversos' }
 ];
 
-// 3. PROJETOS (Passo 3)
+// SERVIÇOS DETALHADOS (Passo 4 - Camada 2)
+const SERVICOS_POR_CATEGORIA: Record<string, Array<{ id: string; codigo: string; descricao: string }>> = {
+  'CAT-VIAGEM': [
+    { id: 'SRV-V01', codigo: 'VIAGEM-01', descricao: 'VIAGEM BARRA DA ESTIVA' },
+    { id: 'SRV-V02', codigo: 'VIAGEM-02', descricao: 'VIAGEM CASCAVEL' },
+    { id: 'SRV-V03', codigo: 'VIAGEM-03', descricao: 'VIAGEM MUCUGE' },
+    { id: 'SRV-V04', codigo: 'VIAGEM-04', descricao: 'VIAGEM RANCHO X' },
+    { id: 'SRV-V05', codigo: 'VIAGEM-05', descricao: 'VIAGEM VITORIA DA CONQUISTA' },
+    { id: 'SRV-V06', codigo: 'VIAGEM-06', descricao: 'VIAGEM' }
+  ],
+  'CAT-TRANSPORTE': [
+    { id: 'SRV-T01', codigo: 'TR-01', descricao: 'COLETA DE MERCADORIAS' },
+    { id: 'SRV-T02', codigo: 'TR-02', descricao: 'ENTREGA DE PRODUTOS VENDIDOS' },
+    { id: 'SRV-T03', codigo: 'TR-03', descricao: 'TRANSPORTE DE PESSOAL' },
+    { id: 'SRV-T04', codigo: 'TR-04', descricao: 'BENEFICIAMENTO DE BATATA' },
+    { id: 'SRV-T05', codigo: 'TR-05', descricao: 'CARREGAMENTO DE CAFÉ' },
+    { id: 'SRV-T06', codigo: 'TR-06', descricao: 'TRANSPORTE BATATA SEMENTE' },
+    { id: 'SRV-T07', codigo: 'TR-07', descricao: 'TRANSPORTE DE ÁGUA' },
+    { id: 'SRV-T08', codigo: 'TR-08', descricao: 'TRANSPORTE DE ÁGUA ESCOLA' },
+    { id: 'SRV-T09', codigo: 'TR-09', descricao: 'TRANSPORTE DE BATATA' },
+    { id: 'SRV-T10', codigo: 'TR-10', descricao: 'TRANSPORTE DE CAFÉ' },
+    { id: 'SRV-T11', codigo: 'TR-11', descricao: 'TRANSPORTE DE CANOS E ADUTORAS' },
+    { id: 'SRV-T12', codigo: 'TR-12', descricao: 'TRANSPORTE DE CAPIM' },
+    { id: 'SRV-T13', codigo: 'TR-13', descricao: 'TRANSPORTE DE COMBUSTÍVEL' },
+    { id: 'SRV-T14', codigo: 'TR-14', descricao: 'TRANSPORTE DE FUNCIONÁRIOS' },
+    { id: 'SRV-T15', codigo: 'TR-15', descricao: 'TRANSPORTE DE INSUMOS' },
+    { id: 'SRV-T16', codigo: 'TR-16', descricao: 'TRANSPORTE DE LAMA-CASCALHO-AREIA' },
+    { id: 'SRV-T17', codigo: 'TR-17', descricao: 'TRANSPORTE DE MÁQUINAS E EQUIPAMENTOS' },
+    { id: 'SRV-T18', codigo: 'TR-18', descricao: 'TRANSPORTE DIVERSOS' }
+  ],
+  'CAT-COLHEITA': [
+    { id: 'SRV-C01', codigo: 'COL-01', descricao: 'COLHEITA MANUAL BATATA CONSUMO' },
+    { id: 'SRV-C02', codigo: 'COL-02', descricao: 'COLHEITA MANUAL BATATA SEMENTE' }
+  ],
+  'CAT-OUTROS': [
+    { id: 'SRV-O01', codigo: 'OUT-01', descricao: 'TRANSPORTE DIVERSOS' }
+  ]
+};
+
+// 3. PROJETOS (Passo 5 - Única seleção de Projeto)
 const PROJETOS_SANKHYA = [
   { id: '4110100', codigo: '4110100', descricao: '4110100 - BENEFICIAMENTO BATATA 2024', nome: 'BENEFICIAMENTO BATATA 2024', centroCusto: 'CC-4110100' },
   { id: '6010100', codigo: '6010100', descricao: '6010100 - FP1P01 - BATATA SEMENTE 2026', nome: 'FP1P01 - BATATA SEMENTE 2026', centroCusto: 'CC-6010100' },
@@ -65,7 +100,7 @@ const PROJETOS_SANKHYA = [
   { id: '6010700', codigo: '6010700', descricao: '6010700 - INFRAESTRUTURA E MANUTENÇÃO SEDE', nome: 'INFRAESTRUTURA E MANUTENÇÃO SEDE', centroCusto: 'CC-6010700' },
 ];
 
-// 4. SOLICITANTES (Passo 4 - Com a 1ª opção sendo "Eu (Próprio)")
+// 4. SOLICITANTES (Passo 6 - Com opção EU (PRÓPRIO))
 const SOLICITANTES_SANKHYA = [
   { id: 'eu', codigo: '1000', descricao: 'EU (PRÓPRIO)', nome: 'Eu (Próprio)' },
   { id: '1001', codigo: '1001', descricao: '1001 - JOÃO - TÉCNICO DE CAMPO', nome: 'João - Técnico de Campo' },
@@ -76,51 +111,32 @@ const SOLICITANTES_SANKHYA = [
   { id: '1006', codigo: '1006', descricao: '1006 - FERNANDO ALVES - GERENTE AGRÍCOLA', nome: 'Fernando Alves - Gerente Agrícola' },
 ];
 
-// 5. PROJETO / CENTRO DE CUSTO (Passo 5 - Exibido como PROJETO)
-const CENTROS_CUSTO_SANKHYA = [
-  { id: '10101', codigo: '10101', descricao: '10101 - CC-BATATA-26 - PRODUÇÃO DE BATATA', centroCusto: 'CC-BATATA-26' },
-  { id: '10102', codigo: '10102', descricao: '10102 - CC-SOJA-L-26 - SAFRA SOJA LESTE', centroCusto: 'CC-SOJA-L-26' },
-  { id: '10103', codigo: '10103', descricao: '10103 - CC-INFRA - INFRAESTRUTURA E MANUTENÇÃO', centroCusto: 'CC-INFRA' },
-  { id: '10104', codigo: '10104', descricao: '10104 - CC-ALMOX - ALMOXARIFADO CENTRAL', centroCusto: 'CC-ALMOX' },
-  { id: '10105', codigo: '10105', descricao: '10105 - CC-MECANICA - OFICINA E MANUTENÇÃO', centroCusto: 'CC-MECANICA' },
-  { id: '10106', codigo: '10106', descricao: '10106 - CC-IRRIGACAO - SISTEMA DE IRRIGAÇÃO E PIVÔS', centroCusto: 'CC-IRRIGACAO' },
-];
-
-// 6. LOCAIS SANKHYA (Origem / Destino - Lista personalizada sem digitação livre)
-const LOCAIS_SANKHYA = [
-  '101 - FAZENDA PROGRESSO - SEDE',
-  '102 - SILO PRINCIPAL / ARMAZÉM',
-  '103 - OFICINA CENTRAL & ABASTECIMENTO',
-  '104 - GALPÃO DE INSUMOS E DEFENSIVOS',
-  '105 - LOTE 01 - CAMPO DE BATATA SEMENTE',
-  '106 - LOTE 04 - CAMPO DE SILAGEM',
-  '107 - LOTE 12 - SAFRA SOJA LESTE',
-  '108 - LOTE 15 - CAMPO DE MILHO',
-  '109 - PEDREIRA / USINA DE BRITAGEM',
-  '110 - BALANÇA ROVIARA',
-  '111 - LAVA JATO / GARAGEM CENTRAL',
-  '112 - PONTO DE TRANSBORDO PORTO'
-];
-
 export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolicitacaoDrawerProps) => {
   const { criarSolicitacao } = useAppContext();
   const { usuario } = useAuth();
   
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  // Nova ordem de Passos: 
+  // 1: Seleção da ORIGEM (Primeira coisa)
+  // 2: Seleção do DESTINO (Segunda coisa)
+  // 3: Categoria de Serviço (Camada 1)
+  // 4: Tipo de Serviço (Camada 2)
+  // 5: Seleção de Projeto (Único)
+  // 6: Seleção do Solicitante
+  // 7: Confirmação, Programação de Data/Hora e Observações
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Seleções sequenciais
-  const [veiculoSel, setVeiculoSel] = useState<typeof VEICULOS_SANKHYA[0] | null>(null);
-  const [servicoSel, setServicoSel] = useState<typeof SERVICOS_SANKHYA[0] | null>(null);
+  const [origemSel, setOrigemSel] = useState<typeof LOCAIS_SANKHYA[0] | null>(null);
+  const [destinoSel, setDestinoSel] = useState<typeof LOCAIS_SANKHYA[0] | null>(null);
+  const [categoriaSel, setCategoriaSel] = useState<typeof CATEGORIAS_SERVICO_SANKHYA[0] | null>(null);
+  const [servicoSel, setServicoSel] = useState<{ id: string; codigo: string; descricao: string } | null>(null);
   const [projetoSel, setProjetoSel] = useState<typeof PROJETOS_SANKHYA[0] | null>(null);
   const [solicitanteSel, setSolicitanteSel] = useState<typeof SOLICITANTES_SANKHYA[0] | null>(SOLICITANTES_SANKHYA[0]);
-  const [centroCustoSel, setCentroCustoSel] = useState<typeof CENTROS_CUSTO_SANKHYA[0] | null>(null);
 
-  // Campos finais (Passo 6)
-  const [origem, setOrigem] = useState(LOCAIS_SANKHYA[0]);
-  const [destino, setDestino] = useState(LOCAIS_SANKHYA[1]);
+  // Campos finais (Passo 7)
   const [dataProgramada, setDataProgramada] = useState(new Date().toISOString().split('T')[0]);
-  const [horarioSaida, setHorarioSaida] = useState(''); // Opcional
+  const [horarioSaida, setHorarioSaida] = useState('');
   const [observacoes, setObservacoes] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
@@ -129,13 +145,12 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
   const handleReset = () => {
     setCurrentStep(1);
     setSearchTerm('');
-    setVeiculoSel(null);
+    setOrigemSel(null);
+    setDestinoSel(null);
+    setCategoriaSel(null);
     setServicoSel(null);
     setProjetoSel(null);
     setSolicitanteSel(SOLICITANTES_SANKHYA[0]);
-    setCentroCustoSel(null);
-    setOrigem(LOCAIS_SANKHYA[0]);
-    setDestino(LOCAIS_SANKHYA[1]);
     setDataProgramada(new Date().toISOString().split('T')[0]);
     setHorarioSaida('');
     setObservacoes('');
@@ -155,39 +170,47 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
     }
   };
 
-  const handleSelectVeiculo = (item: typeof VEICULOS_SANKHYA[0]) => {
-    setVeiculoSel(item);
+  // Handlers das Etapas
+  const handleSelectOrigem = (item: typeof LOCAIS_SANKHYA[0]) => {
+    setOrigemSel(item);
     setSearchTerm('');
-    setCurrentStep(2); // Avança para SERVIÇOS
+    setCurrentStep(2); // Avança para DESTINO (2º Passo)
   };
 
-  const handleSelectServico = (item: typeof SERVICOS_SANKHYA[0]) => {
+  const handleSelectDestino = (item: typeof LOCAIS_SANKHYA[0]) => {
+    setDestinoSel(item);
+    setSearchTerm('');
+    setCurrentStep(3); // Avança para Categoria de Serviço (3º Passo)
+  };
+
+  const handleSelectCategoria = (cat: typeof CATEGORIAS_SERVICO_SANKHYA[0]) => {
+    setCategoriaSel(cat);
+    setServicoSel(null);
+    setSearchTerm('');
+    setCurrentStep(4); // Avança para Tipos de Serviço (4º Passo)
+  };
+
+  const handleSelectServico = (item: { id: string; codigo: string; descricao: string }) => {
     setServicoSel(item);
     setSearchTerm('');
-    setCurrentStep(3); // Avança para PROJETOS
+    setCurrentStep(5); // Avança para Projeto (5º Passo)
   };
 
   const handleSelectProjeto = (item: typeof PROJETOS_SANKHYA[0]) => {
     setProjetoSel(item);
     setSearchTerm('');
-    setCurrentStep(4); // Avança para SOLICITANTE
+    setCurrentStep(6); // Avança para Solicitante (6º Passo)
   };
 
   const handleSelectSolicitante = (item: typeof SOLICITANTES_SANKHYA[0]) => {
     setSolicitanteSel(item);
     setSearchTerm('');
-    setCurrentStep(5); // Avança para PROJETO (Centro de Custo)
-  };
-
-  const handleSelectCentroCusto = (item: typeof CENTROS_CUSTO_SANKHYA[0]) => {
-    setCentroCustoSel(item);
-    setSearchTerm('');
-    setCurrentStep(6); // Avança para DETALHES E ROTA
+    setCurrentStep(7); // Avança para Programação de Data/Hora e Confirmação (7º Passo)
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!veiculoSel || !servicoSel || !projetoSel || !solicitanteSel || !centroCustoSel) return;
+    if (!origemSel || !destinoSel || !servicoSel || !projetoSel || !solicitanteSel) return;
 
     setIsLoading(true);
 
@@ -209,18 +232,18 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
           departamento: 'Operações'
         },
         tipoServico: servicoSel.descricao,
-        origem,
-        destino,
+        origem: origemSel.descricao,
+        destino: destinoSel.descricao,
         dataProgramada,
         horarioProgramado: horarioFormatado || undefined,
         projeto: {
           id: projetoSel.id,
           nome: projetoSel.nome,
-          centroCusto: centroCustoSel.centroCusto
+          centroCusto: projetoSel.centroCusto
         },
         observacoes: observacoes 
-          ? `[Veículo: ${veiculoSel.descricao}] - ${observacoes}`
-          : `[Veículo: ${veiculoSel.descricao}]`
+          ? `[Categoria: ${categoriaSel?.nome || 'Serviço'}] - ${observacoes}`
+          : undefined
       });
 
       setIsLoading(false);
@@ -235,25 +258,35 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
     onClose();
   };
 
-  // Título e subtítulo do Header por passo
+  // Título do Header por passo
   const getHeaderTitle = () => {
     switch (currentStep) {
-      case 1: return 'VEÍCULOS';
-      case 2: return 'SERVIÇOS';
-      case 3: return 'PROJETOS';
-      case 4: return 'SOLICITANTE';
-      case 5: return 'PROJETO';
-      case 6: return 'DETALHES DA SOLICITAÇÃO';
+      case 1: return 'SELECIONAR ORIGEM';
+      case 2: return 'SELECIONAR DESTINO';
+      case 3: return 'CATEGORIA DE SERVIÇO';
+      case 4: return `SERVIÇOS (${categoriaSel?.nome || ''})`;
+      case 5: return 'SELECIONAR PROJETO';
+      case 6: return 'SOLICITANTE';
+      case 7: return 'CONFIRMAÇÃO & PROGRAMAÇÃO';
     }
   };
 
-  // Filtros de busca para cada lista
-  const filteredVeiculos = VEICULOS_SANKHYA.filter(v => 
-    v.descricao.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    v.placa.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filtros de busca para cada etapa
+  const filteredLocaisOrigem = LOCAIS_SANKHYA.filter(l => 
+    l.descricao.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredServicos = SERVICOS_SANKHYA.filter(s => 
+  const filteredLocaisDestino = LOCAIS_SANKHYA.filter(l => 
+    l.descricao.toLowerCase().includes(searchTerm.toLowerCase()) && l.id !== origemSel?.id
+  );
+
+  const filteredCategorias = CATEGORIAS_SERVICO_SANKHYA.filter(c => 
+    c.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.descricao.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const servicosDaCategoria = categoriaSel ? (SERVICOS_POR_CATEGORIA[categoriaSel.id] || []) : [];
+  const filteredServicos = servicosDaCategoria.filter(s => 
     s.descricao.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -264,10 +297,6 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
   const filteredSolicitantes = SOLICITANTES_SANKHYA.filter(s => 
     s.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (s.id === 'eu' && usuario?.nome && usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const filteredCentrosCusto = CENTROS_CUSTO_SANKHYA.filter(c => 
-    c.descricao.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -282,7 +311,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
       >
         <div className="flex flex-col h-full bg-slate-50 min-h-screen">
           
-          {/* Header Premium (Mesmo Tom do Sidebar - Slate 900) */}
+          {/* Header Premium */}
           <div className="bg-slate-900 text-white px-4 py-4 sticky top-0 z-30 shadow-md border-b border-slate-800">
             <div className="flex items-center justify-between">
               <button 
@@ -295,11 +324,11 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
               </button>
               
               <div className="text-center flex-1 mx-2">
-                <h2 className="text-lg font-extrabold tracking-wider uppercase">
+                <h2 className="text-base font-extrabold tracking-wider uppercase truncate">
                   {getHeaderTitle()}
                 </h2>
                 <div className="text-[11px] font-medium text-slate-400 tracking-wide mt-0.5">
-                  Passo {currentStep} de 6 — Seleção Sequencial
+                  Etapa {currentStep} de 7 — Seleção Sequencial
                 </div>
               </div>
 
@@ -317,13 +346,13 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
             <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
               <div 
                 className="bg-emerald-400 h-full transition-all duration-300 ease-out"
-                style={{ width: `${(currentStep / 6) * 100}%` }}
+                style={{ width: `${(currentStep / 7) * 100}%` }}
               ></div>
             </div>
           </div>
 
-          {/* Barra de Pesquisa (Passos 1 a 5 - Azul) */}
-          {currentStep >= 1 && currentStep <= 5 && (
+          {/* Campo de Pesquisa em Cima (Passos 1 a 6) */}
+          {currentStep >= 1 && currentStep <= 6 && (
             <div className="p-4 bg-white border-b border-slate-200 shadow-sm sticky top-[76px] z-20">
               <div className="relative flex items-center bg-slate-50 rounded-2xl border border-slate-200/80 px-3 py-2.5 focus-within:bg-white focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center mr-3 shrink-0">
@@ -332,7 +361,11 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                 <input 
                   type="text"
                   className="w-full bg-transparent text-sm outline-none font-medium text-slate-800 placeholder-slate-400"
-                  placeholder="Pesquisar"
+                  placeholder={
+                    currentStep === 1 ? "Pesquisar local de origem..." :
+                    currentStep === 2 ? "Pesquisar local de destino..." :
+                    "Pesquisar..."
+                  }
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   autoFocus
@@ -349,26 +382,83 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
             </div>
           )}
 
-          {/* Conteúdo Principal: Passos 1 a 5 (Listagens com Chevron >) */}
+          {/* Lista em Baixo (Passos 1 a 6) */}
           <div className="flex-1 bg-white">
             
-            {/* PASSO 1: VEÍCULOS */}
+            {/* ETAPA 1: ORIGEM (Primeira coisa a ser selecionada) */}
             {currentStep === 1 && (
               <div className="divide-y divide-slate-100">
-                {filteredVeiculos.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400 font-medium">Nenhum veículo encontrado</div>
+                {filteredLocaisOrigem.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 font-medium">Nenhum local de origem encontrado</div>
                 ) : (
-                  filteredVeiculos.map((v) => (
+                  filteredLocaisOrigem.map((loc) => (
                     <div 
-                      key={v.id}
-                      onClick={() => handleSelectVeiculo(v)}
+                      key={loc.id}
+                      onClick={() => handleSelectOrigem(loc)}
+                      className="flex items-center justify-between px-5 py-4 hover:bg-emerald-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
+                    >
+                      <div className="flex items-center space-x-3 pr-4">
+                        <MapPin size={18} className="text-emerald-600 group-hover:text-emerald-700 shrink-0" />
+                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-emerald-900 leading-snug">
+                          {loc.descricao}
+                        </span>
+                      </div>
+                      <ChevronRight size={18} className="text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all shrink-0" />
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* ETAPA 2: DESTINO (Segunda coisa a ser selecionada) */}
+            {currentStep === 2 && (
+              <div className="divide-y divide-slate-100">
+                {filteredLocaisDestino.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 font-medium">Nenhum local de destino encontrado</div>
+                ) : (
+                  filteredLocaisDestino.map((loc) => (
+                    <div 
+                      key={loc.id}
+                      onClick={() => handleSelectDestino(loc)}
+                      className="flex items-center justify-between px-5 py-4 hover:bg-rose-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
+                    >
+                      <div className="flex items-center space-x-3 pr-4">
+                        <MapPin size={18} className="text-rose-600 group-hover:text-rose-700 shrink-0" />
+                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-rose-900 leading-snug">
+                          {loc.descricao}
+                        </span>
+                      </div>
+                      <ChevronRight size={18} className="text-slate-400 group-hover:text-rose-600 group-hover:translate-x-1 transition-all shrink-0" />
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* ETAPA 3: CATEGORIA DE SERVIÇO (Camada 1) */}
+            {currentStep === 3 && (
+              <div className="divide-y divide-slate-100">
+                {filteredCategorias.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 font-medium">Nenhuma categoria encontrada</div>
+                ) : (
+                  filteredCategorias.map((cat) => (
+                    <div 
+                      key={cat.id}
+                      onClick={() => handleSelectCategoria(cat)}
                       className="flex items-center justify-between px-5 py-4 hover:bg-blue-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
                     >
                       <div className="flex items-center space-x-3 pr-4">
-                        <Truck size={18} className="text-slate-400 group-hover:text-blue-600 shrink-0" />
-                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-blue-900 leading-snug">
-                          {v.descricao}
-                        </span>
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-600 flex items-center justify-center shrink-0 transition-colors">
+                          <Layers size={18} />
+                        </div>
+                        <div>
+                          <span className="text-sm font-bold text-slate-800 uppercase tracking-wide group-hover:text-blue-900 block">
+                            {cat.nome}
+                          </span>
+                          <span className="text-xs text-slate-500 font-medium">
+                            {cat.descricao}
+                          </span>
+                        </div>
                       </div>
                       <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all shrink-0" />
                     </div>
@@ -377,11 +467,11 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
               </div>
             )}
 
-            {/* PASSO 2: SERVIÇOS */}
-            {currentStep === 2 && (
+            {/* ETAPA 4: TIPO DE SERVIÇO (Camada 2) */}
+            {currentStep === 4 && (
               <div className="divide-y divide-slate-100">
                 {filteredServicos.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400 font-medium">Nenhum serviço encontrado</div>
+                  <div className="p-8 text-center text-slate-400 font-medium">Nenhum serviço encontrado nesta categoria</div>
                 ) : (
                   filteredServicos.map((s) => (
                     <div 
@@ -402,8 +492,8 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
               </div>
             )}
 
-            {/* PASSO 3: PROJETOS */}
-            {currentStep === 3 && (
+            {/* ETAPA 5: PROJETO */}
+            {currentStep === 5 && (
               <div className="divide-y divide-slate-100">
                 {filteredProjetos.length === 0 ? (
                   <div className="p-8 text-center text-slate-400 font-medium">Nenhum projeto encontrado</div>
@@ -427,8 +517,8 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
               </div>
             )}
 
-            {/* PASSO 4: SOLICITANTE */}
-            {currentStep === 4 && (
+            {/* ETAPA 6: SOLICITANTE */}
+            {currentStep === 6 && (
               <div className="divide-y divide-slate-100">
                 {filteredSolicitantes.length === 0 ? (
                   <div className="p-8 text-center text-slate-400 font-medium">Nenhum solicitante encontrado</div>
@@ -463,58 +553,43 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
               </div>
             )}
 
-            {/* PASSO 5: PROJETO (Substitui Centro de Custo) */}
-            {currentStep === 5 && (
-              <div className="divide-y divide-slate-100">
-                {filteredCentrosCusto.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400 font-medium">Nenhum projeto encontrado</div>
-                ) : (
-                  filteredCentrosCusto.map((cc) => (
-                    <div 
-                      key={cc.id}
-                      onClick={() => handleSelectCentroCusto(cc)}
-                      className="flex items-center justify-between px-5 py-4 hover:bg-blue-50/70 cursor-pointer transition-all duration-150 group border-b border-slate-100"
-                    >
-                      <div className="flex items-center space-x-3 pr-4">
-                        <Building2 size={18} className="text-slate-400 group-hover:text-blue-600 shrink-0" />
-                        <span className="text-sm font-semibold text-slate-800 uppercase tracking-wide group-hover:text-blue-900 leading-snug">
-                          {cc.descricao}
-                        </span>
-                      </div>
-                      <ChevronRight size={18} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all shrink-0" />
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* PASSO 6: DETALHES E ROTA DA SOLICITAÇÃO */}
-            {currentStep === 6 && (
+            {/* ETAPA 7: CONFIRMAÇÃO & PROGRAMAÇÃO */}
+            {currentStep === 7 && (
               <div className="p-6 bg-slate-50 min-h-full space-y-6">
                 
-                {/* Resumo dos itens selecionados previamente com botão de editar */}
+                {/* Resumo com botão de edição rápida */}
                 <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Itens Selecionados</span>
-                    <span className="text-[11px] text-blue-600 font-bold">5 de 5 Escolhidos</span>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Dados Selecionados</span>
+                    <span className="text-[11px] text-emerald-600 font-bold">Pronto para Enviar</span>
                   </div>
 
                   <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="font-semibold text-slate-600 flex items-center"><Truck size={14} className="mr-2 text-blue-600" /> Veículo:</span>
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                      <span className="font-semibold text-emerald-800 flex items-center"><MapPin size={14} className="mr-2 text-emerald-600" /> Origem:</span>
                       <div className="flex items-center space-x-2">
-                        <span className="font-bold text-slate-800">{veiculoSel?.descricao}</span>
-                        <button onClick={() => setCurrentStep(1)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
+                        <span className="font-bold text-emerald-900">{origemSel?.descricao}</span>
+                        <button onClick={() => setCurrentStep(1)} className="text-emerald-700 hover:text-emerald-900 p-1" title="Alterar">
+                          <Edit3 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-rose-50/60 border border-rose-100">
+                      <span className="font-semibold text-rose-800 flex items-center"><MapPin size={14} className="mr-2 text-rose-600" /> Destino:</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-rose-900">{destinoSel?.descricao}</span>
+                        <button onClick={() => setCurrentStep(2)} className="text-rose-700 hover:text-rose-900 p-1" title="Alterar">
                           <Edit3 size={14} />
                         </button>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="font-semibold text-slate-600 flex items-center"><Wrench size={14} className="mr-2 text-blue-600" /> Serviço:</span>
+                      <span className="font-semibold text-slate-600 flex items-center"><Layers size={14} className="mr-2 text-blue-600" /> Categoria & Serviço:</span>
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-slate-800">{servicoSel?.descricao}</span>
-                        <button onClick={() => setCurrentStep(2)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
+                        <button onClick={() => setCurrentStep(3)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
                           <Edit3 size={14} />
                         </button>
                       </div>
@@ -524,7 +599,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                       <span className="font-semibold text-slate-600 flex items-center"><FolderKanban size={14} className="mr-2 text-blue-600" /> Projeto:</span>
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-slate-800">{projetoSel?.descricao}</span>
-                        <button onClick={() => setCurrentStep(3)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
+                        <button onClick={() => setCurrentStep(5)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
                           <Edit3 size={14} />
                         </button>
                       </div>
@@ -536,17 +611,7 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                         <span className="font-bold text-slate-800">
                           {solicitanteSel?.id === 'eu' ? `EU (${usuario?.nome?.toUpperCase() || 'PRÓPRIO SOLICITANTE'})` : solicitanteSel?.descricao}
                         </span>
-                        <button onClick={() => setCurrentStep(4)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
-                          <Edit3 size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="font-semibold text-slate-600 flex items-center"><Building2 size={14} className="mr-2 text-blue-600" /> Projeto (Centro Custo):</span>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-slate-800">{centroCustoSel?.descricao}</span>
-                        <button onClick={() => setCurrentStep(5)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
+                        <button onClick={() => setCurrentStep(6)} className="text-blue-600 hover:text-blue-800 p-1" title="Alterar">
                           <Edit3 size={14} />
                         </button>
                       </div>
@@ -554,51 +619,10 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                   </div>
                 </div>
 
-                {/* Formulário Final de Rota e Agendamento */}
+                {/* Formulário Final de Data/Hora & Observações */}
                 <form onSubmit={handleSubmit} className="space-y-6">
                   
-                  {/* Seleção de Origem e Destino (Lista Personalizada Sankhya - Sem Digitação Livre) */}
-                  <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center border-b border-slate-100 pb-2">
-                      <MapPin size={16} className="mr-2 text-blue-600" /> Rota (Lista Personalizada Sankhya)
-                    </h3>
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
-                          Origem
-                        </label>
-                        <select
-                          required
-                          className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all bg-white text-sm font-semibold text-slate-800 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%231E40AF%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat shadow-sm"
-                          value={origem}
-                          onChange={(e) => setOrigem(e.target.value)}
-                        >
-                          {LOCAIS_SANKHYA.map((loc) => (
-                            <option key={loc} value={loc}>{loc}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
-                          Destino
-                        </label>
-                        <select
-                          required
-                          className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all bg-white text-sm font-semibold text-slate-800 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%231E40AF%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat shadow-sm"
-                          value={destino}
-                          onChange={(e) => setDestino(e.target.value)}
-                        >
-                          {LOCAIS_SANKHYA.map((loc) => (
-                            <option key={loc} value={loc}>{loc}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Agendamento de Data e Hora Saída Opcional */}
+                  {/* Agendamento de Data e Hora Saída */}
                   <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
                     <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center border-b border-slate-100 pb-2">
                       <Calendar size={16} className="mr-2 text-blue-600" /> Programação de Data e Horário
@@ -622,27 +646,26 @@ export const NovaSolicitacaoDrawer = ({ isOpen, onClose, onSuccess }: NovaSolici
                         <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wide">
                           Hora Saída <span className="text-slate-400 font-normal lowercase">(opcional)</span>
                         </label>
-                        <div className="relative">
-                          <input 
-                            type="time" 
-                            className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 shadow-sm"
-                            value={horarioSaida}
-                            onChange={(e) => setHorarioSaida(e.target.value)}
-                          />
-                        </div>
+                        <input 
+                          type="time" 
+                          className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 shadow-sm"
+                          value={horarioSaida}
+                          onChange={(e) => setHorarioSaida(e.target.value)}
+                        />
                       </div>
                     </div>
                   </div>
 
-                  {/* Observações Adicionais */}
+                  {/* Observações Adicionais (Obrigatório) */}
                   <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center">
-                      <FileText size={16} className="mr-2 text-blue-600" /> Observações Adicionais <span className="text-slate-400 font-normal lowercase ml-1">(opcional)</span>
+                      <FileText size={16} className="mr-2 text-blue-600" /> Observações Adicionais <span className="text-red-500 ml-1">*</span>
                     </label>
                     <textarea
                       rows={3}
-                      placeholder="Ex: Passar primeiro no Pivô 01, depois Pivô 04. Carga sensível a chuva, se possivel antes das 12h"
-                      className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 resize-none shadow-sm"
+                      required
+                      placeholder="Descreva detalhes importantes sobre a carga, horário limite ou instruções de rota..."
+                      className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 resize-none shadow-sm font-medium text-slate-800"
                       value={observacoes}
                       onChange={(e) => setObservacoes(e.target.value)}
                     ></textarea>

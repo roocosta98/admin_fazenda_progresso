@@ -16,7 +16,9 @@ import {
   CheckCircle2,
   MapPin,
   User,
-  Radio
+  Radio,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 interface TVOSItem {
@@ -354,6 +356,7 @@ export const TelaTVMonitor = () => {
   const [time, setTime] = useState(new Date());
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [showConcluidos, setShowConcluidos] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
 
   const ITEMS_PER_PAGE = 10; // Exibe 10 linhas por visualização
@@ -377,11 +380,19 @@ export const TelaTVMonitor = () => {
     ultimoRastreio: `15:59:${(10 + idx * 7) % 60} (há 20 seg)`
   }));
 
-  const allItems = [...osContextoFormatadas, ...DEMO_OS_LIST].filter(
+  const rawItems = [...osContextoFormatadas, ...DEMO_OS_LIST].filter(
     (item, index, self) => index === self.findIndex((t) => t.numeroOS === item.numeroOS)
   );
 
-  const totalPages = Math.ceil(allItems.length / ITEMS_PER_PAGE);
+  const emExecucaoCount = rawItems.filter(i => i.statusTipo === 'em_execucao').length;
+  const agendadosCount = rawItems.filter(i => i.statusTipo === 'agendado').length;
+  const concluidosCount = rawItems.filter(i => i.statusTipo === 'concluido').length;
+
+  const allItems = showConcluidos 
+    ? rawItems 
+    : rawItems.filter(item => item.statusTipo !== 'concluido');
+
+  const totalPages = Math.max(1, Math.ceil(allItems.length / ITEMS_PER_PAGE));
 
   // Relógio ao vivo com segundos
   useEffect(() => {
@@ -414,10 +425,6 @@ export const TelaTVMonitor = () => {
     currentPage * ITEMS_PER_PAGE,
     (currentPage + 1) * ITEMS_PER_PAGE
   );
-
-  const emExecucaoCount = allItems.filter(i => i.statusTipo === 'em_execucao').length;
-  const agendadosCount = allItems.filter(i => i.statusTipo === 'agendado').length;
-  const concluidosCount = allItems.filter(i => i.statusTipo === 'concluido').length;
 
   return (
     <div className={`min-h-screen transition-colors duration-300 font-sans select-none flex flex-col ${
@@ -487,6 +494,32 @@ export const TelaTVMonitor = () => {
           {/* Botões de Ação */}
           <div className="flex items-center space-x-2">
             
+            {/* Opção de Esconder / Exibir Concluídos */}
+            <button 
+              onClick={() => {
+                setShowConcluidos(!showConcluidos);
+                setCurrentPage(0);
+              }}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
+                showConcluidos 
+                  ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' 
+                  : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/40'
+              }`}
+              title={showConcluidos ? 'Clique para esconder chamados concluídos' : 'Clique para exibir chamados concluídos'}
+            >
+              {showConcluidos ? (
+                <>
+                  <EyeOff size={15} />
+                  <span className="hidden sm:inline">Esconder Concluídos</span>
+                </>
+              ) : (
+                <>
+                  <Eye size={15} />
+                  <span className="hidden sm:inline">Exibir Concluídos</span>
+                </>
+              )}
+            </button>
+
             {/* Alternar entre Modo Claro (Branco) e Escuro */}
             <button 
               onClick={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}

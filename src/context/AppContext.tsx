@@ -17,7 +17,7 @@ interface AppContextType {
   veiculos: Veiculo[];
   motoristas: Motorista[];
   criarSolicitacao: (dados: Omit<SolicitacaoTransporte, 'id' | 'numeroOS' | 'status' | 'dataSolicitacao'>) => void;
-  aprovarEAgendarSolicitacao: (idOS: string, veiculoId: string, motoristaId: string, horarioConfirmado?: string) => void;
+  aprovarEAgendarSolicitacao: (idOS: string, veiculoId: string, motoristaId: string, horarioConfirmado?: string, observacaoLogistica?: string, notificarSolicitante?: boolean) => void;
   reagendarSolicitacao: (idOS: string, novaData: string, novoHorario: string, observacaoLogistica: string) => void;
   cancelarSolicitacao: (idOS: string, motivo: string) => void;
   substituirMotorista: (idOS: string, novoMotoristaId: string) => void;
@@ -50,7 +50,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setSolicitacoes(prev => [novaSolicitacao, ...prev]);
   };
 
-  const aprovarEAgendarSolicitacao = (idOS: string, veiculoId: string, motoristaId: string, horarioConfirmado?: string) => {
+  const aprovarEAgendarSolicitacao = (
+    idOS: string, 
+    veiculoId: string, 
+    motoristaId: string, 
+    horarioConfirmado?: string,
+    observacaoLogistica?: string,
+    notificarSolicitante?: boolean
+  ) => {
     const veiculo = veiculos.find(v => v.id === veiculoId);
     const motorista = motoristas.find(m => m.id === motoristaId);
     
@@ -63,15 +70,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           status: 'agendada',
           veiculoAlocado: veiculo,
           motoristaAlocado: motorista,
-          ...(horarioConfirmado && { horarioProgramado: horarioConfirmado })
+          ...(horarioConfirmado && { horarioProgramado: horarioConfirmado }),
+          ...(observacaoLogistica && { observacaoLogistica })
         };
       }
       return sol;
     }));
 
+    const msgNotif = notificarSolicitante 
+      ? `[Notificação enviada ao Solicitante] OS ${idOS} aprovada. Motorista: ${motorista.nome}. Obs: "${observacaoLogistica || 'Sem observações'}"`
+      : `A OS ${idOS} foi agendada. Motorista ${motorista.nome} e veículo ${veiculo.placa} alocados.`;
+
     const novaNotif: NotificacaoSimulada = {
       id: `NOT-${Date.now()}`,
-      mensagem: `A OS ${idOS} foi agendada. Motorista ${motorista.nome} e veículo ${veiculo.placa} alocados.`,
+      mensagem: msgNotif,
       data: new Date().toISOString(),
       lida: false,
       tipo: 'whatsapp'
