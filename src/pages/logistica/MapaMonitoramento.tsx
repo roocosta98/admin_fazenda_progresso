@@ -20,13 +20,14 @@ import {
   ShieldAlert,
   Car,
   Layers,
-  Map as MapIcon
+  Map as MapIcon,
+  CheckCircle2
 } from 'lucide-react';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyAeQIKfNplzSj3wnUdIVBSnhzDb0OuFPwM';
 
-// Centro aproximado da Fazenda Progresso (Ibicoara / Chapada Diamantina - BA: -13.0100, -41.3700)
-const FAZENDA_CENTER = { lat: -13.0100, lng: -41.3700 };
+// Centro aproximado da Fazenda Progresso em Mucugê / Chapada Diamantina - BA (-13.0047, -41.3708)
+const FAZENDA_CENTER = { lat: -13.0047, lng: -41.3708 };
 
 interface VeiculoTelemetria {
   id: string;
@@ -41,7 +42,7 @@ interface VeiculoTelemetria {
   combustivel: number; // %
   rpm: number;
   progresso: number; // %
-  status: 'online' | 'parado' | 'alerta';
+  status: 'online' | 'parado' | 'alerta' | 'concluido';
   mensagemAlerta?: string;
   ultimaComunicacao: string;
   position: { lat: number; lng: number };
@@ -254,6 +255,40 @@ const VEICULOS_TELEMETRIA: VeiculoTelemetria[] = [
     status: 'online',
     ultimaComunicacao: 'há 1 min',
     position: { lat: -13.0040, lng: -41.3820 }
+  },
+  {
+    id: 'TEL-013',
+    numeroOS: 'OS-2026-0013',
+    veiculo: 'ONIBUS M.BENZ 1721',
+    placa: 'OKL-9988',
+    tipo: 'Ônibus',
+    motorista: 'Gabriel Santos',
+    origem: 'Sede Mucugê',
+    destino: 'Pivô Central',
+    velocidade: 0,
+    combustivel: 90,
+    rpm: 0,
+    progresso: 100,
+    status: 'concluido',
+    ultimaComunicacao: 'há 20 min',
+    position: { lat: -13.0010, lng: -41.3680 }
+  },
+  {
+    id: 'TEL-014',
+    numeroOS: 'OS-2026-0014',
+    veiculo: 'CAÇAMBA VOLVO VM 330',
+    placa: 'MNC-4455',
+    tipo: 'Caçamba',
+    motorista: 'Renato Oliveira',
+    origem: 'Talhão 09',
+    destino: 'Armazém Secundário',
+    velocidade: 0,
+    combustivel: 68,
+    rpm: 0,
+    progresso: 100,
+    status: 'concluido',
+    ultimaComunicacao: 'há 35 min',
+    position: { lat: -13.0150, lng: -41.3620 }
   }
 ];
 
@@ -272,6 +307,7 @@ export const MapaMonitoramento = () => {
   const [selectedVeiculo, setSelectedVeiculo] = useState<VeiculoTelemetria | null>(VEICULOS_TELEMETRIA[0]);
   const [busca, setBusca] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState<string>('todos');
+  const [exibirConcluidos, setExibirConcluidos] = useState<boolean>(true);
   const [mapTypeId, setMapTypeId] = useState<'hybrid' | 'roadmap' | 'terrain'>('hybrid');
   const [mapCenter, setMapCenter] = useState(FAZENDA_CENTER);
 
@@ -283,6 +319,8 @@ export const MapaMonitoramento = () => {
 
   // Filtros de Veículos
   const veiculosFiltrados = VEICULOS_TELEMETRIA.filter(v => {
+    if (!exibirConcluidos && v.status === 'concluido') return false;
+
     const matchesBusca = 
       v.veiculo.toLowerCase().includes(busca.toLowerCase()) || 
       v.placa.toLowerCase().includes(busca.toLowerCase()) ||
@@ -329,6 +367,8 @@ export const MapaMonitoramento = () => {
                 pinBg = 'bg-white border-amber-500 text-amber-700 shadow-lg';
               } else if (v.status === 'alerta') {
                 pinBg = 'bg-white border-rose-600 text-rose-700 shadow-lg';
+              } else if (v.status === 'concluido') {
+                pinBg = 'bg-white border-blue-500 text-blue-700 shadow-lg opacity-80';
               }
 
               return (
@@ -433,7 +473,7 @@ export const MapaMonitoramento = () => {
         </div>
 
         {/* PAINEL CLARO FLUTUANTE DE CONTROLES DO GOOGLE MAPS (SUPERIOR ESQUERDO) */}
-        <div className="absolute top-6 left-6 z-30 flex flex-col space-y-3 pointer-events-auto">
+        <div className="absolute top-8 left-6 z-30 flex flex-col space-y-3 pointer-events-auto">
           <div className="bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-slate-200/80 flex items-center space-x-2">
             <div className="flex items-center space-x-1 px-2 py-1 bg-emerald-50 text-emerald-800 rounded-xl font-bold text-xs border border-emerald-200">
               <MapIcon size={14} className="mr-1 text-emerald-600" />
@@ -473,10 +513,10 @@ export const MapaMonitoramento = () => {
         </div>
 
         {/* PAINEL LATERAL DIREITO CLARO (FROTA EM TRÂNSITO) */}
-        <div className="absolute right-6 top-6 bottom-6 w-96 bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col z-30 overflow-hidden pointer-events-auto">
+        <div className="absolute right-6 top-8 bottom-6 w-96 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col z-30 overflow-hidden pointer-events-auto">
           
           {/* Cabeçalho do Painel Lateral */}
-          <div className="p-5 border-b border-slate-100 bg-white/80">
+          <div className="p-5 pt-6 border-b border-slate-100 bg-white/90">
             <h3 className="text-lg font-black text-slate-800 tracking-tight flex items-center">
               <Truck className="mr-2.5 text-emerald-600" size={20} /> Frota em Telemetria
             </h3>
@@ -510,6 +550,18 @@ export const MapaMonitoramento = () => {
                   {tipo}
                 </button>
               ))}
+            </div>
+
+            {/* Chave Seletora: Exibir / Ocultar Viagens Concluídas */}
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-xs">
+              <span className="font-bold text-slate-700">Exibir Viagens Concluídas</span>
+              <button
+                type="button"
+                onClick={() => setExibirConcluidos(!exibirConcluidos)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${exibirConcluidos ? 'bg-emerald-600' : 'bg-slate-300'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${exibirConcluidos ? 'translate-x-4' : 'translate-x-0'}`} />
+              </button>
             </div>
           </div>
 
@@ -551,13 +603,14 @@ export const MapaMonitoramento = () => {
 
             <div className="h-px bg-slate-100 w-full"></div>
 
-            {/* Lista de Veículos Cadastrados */}
+            {/* Lista de Veículos Cadastrados (Exibe 3 veículos por vez, com scroll) */}
             <div className="space-y-2">
               <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
                 Veículos Conectados ({veiculosFiltrados.length})
               </h4>
 
-              {veiculosFiltrados.map(v => {
+              <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-slate-300">
+                {veiculosFiltrados.map(v => {
                 const isSelected = selectedVeiculo?.id === v.id;
                 
                 return (
@@ -588,6 +641,11 @@ export const MapaMonitoramento = () => {
                           <AlertTriangle size={10} className="mr-1" /> Alerta
                         </span>
                       )}
+                      {v.status === 'concluido' && (
+                        <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold border border-blue-200 flex items-center">
+                          <CheckCircle2 size={10} className="mr-1" /> Concluído
+                        </span>
+                      )}
                     </div>
 
                     <p className="text-xs font-bold text-slate-800 truncate">{v.veiculo}</p>
@@ -600,6 +658,7 @@ export const MapaMonitoramento = () => {
                   </div>
                 );
               })}
+              </div>
             </div>
           </div>
         </div>

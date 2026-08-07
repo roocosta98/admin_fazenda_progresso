@@ -5,6 +5,7 @@ import { MainLayout } from '../components/layout/MainLayout';
 import { Login } from '../pages/auth/Login';
 import { MinhasSolicitacoes } from '../pages/solicitante/MinhasSolicitacoes';
 import { Dashboard } from '../pages/logistica/Dashboard';
+import { DashboardBI } from '../pages/logistica/DashboardBI';
 import { FilaPendentes } from '../pages/logistica/FilaPendentes';
 import { GestaoFrota } from '../pages/logistica/GestaoFrota';
 import { MapaMonitoramento } from '../pages/logistica/MapaMonitoramento';
@@ -39,6 +40,10 @@ export const AppRoutes = () => {
         <Route 
           path="/logistica/dashboard" 
           element={<ProtectedRoute allowedRoles={['logistica']}><Dashboard /></ProtectedRoute>} 
+        />
+        <Route 
+          path="/logistica/bi" 
+          element={<ProtectedRoute allowedRoles={['logistica']}><DashboardBI /></ProtectedRoute>} 
         />
         <Route 
           path="/logistica/pendentes" 

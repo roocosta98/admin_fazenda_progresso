@@ -29,7 +29,6 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
   const [isLoading, setIsLoading] = useState(false);
   const [manutencaoModalOpen, setManutencaoModalOpen] = useState(false);
 
-  const [notificarSolicitante, setNotificarSolicitante] = useState(true);
   const [observacaoAprovacao, setObservacaoAprovacao] = useState('');
 
   useEffect(() => {
@@ -38,13 +37,12 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
       setNovaData(solicitacao.dataProgramada || '');
       setNovoHorario(solicitacao.horarioProgramado || '');
       setObservacaoAprovacao('');
-      setNotificarSolicitante(true);
       setActiveTab('alocar');
     }
   }, [solicitacao, isOpen]);
 
   const handleAlocar = () => {
-    if (!solicitacao || !veiculoId || !motoristaId) return;
+    if (!solicitacao || !veiculoId || !motoristaId || !horarioConfirmado.trim()) return;
     setIsLoading(true);
     setTimeout(() => {
       aprovarEAgendarSolicitacao(
@@ -52,11 +50,10 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
         veiculoId, 
         motoristaId, 
         horarioConfirmado, 
-        observacaoAprovacao, 
-        notificarSolicitante
+        observacaoAprovacao
       );
       setIsLoading(false);
-      onSuccess(`${solicitacao.numeroOS} Aprovada! ${notificarSolicitante ? 'Notificação enviada ao solicitante.' : ''}`);
+      onSuccess(`${solicitacao.numeroOS} Aprovada! Notificações automáticas enviadas ao solicitante e motorista.`);
       onClose();
     }, 800);
   };
@@ -77,7 +74,7 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
     if (!solicitacao || !novaData || !observacaoLogistica) return;
     setIsLoading(true);
     setTimeout(() => {
-      reagendarSolicitacao(solicitacao.numeroOS, novaData, novoHorario, observacaoLogistica);
+      reagendarSolicitacao(solicitacao.numeroOS, novaData, novoHorario || horarioConfirmado, observacaoLogistica);
       setIsLoading(false);
       onSuccess(`${solicitacao.numeroOS} Reagendada! Notificação enviada ao solicitante.`);
       onClose();
@@ -166,8 +163,9 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
           <button
             onClick={() => setActiveTab('reagendar')}
             className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex justify-center items-center gap-1.5 ${activeTab === 'reagendar' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+            title="Alterar Data da Viagem"
           >
-            <RefreshCw size={14} /> Reagendar
+            <RefreshCw size={14} /> Reagendar Data
           </button>
           <button
             onClick={() => setActiveTab('cancelar')}
@@ -219,19 +217,25 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
               </div>
 
               <div className="group/input">
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center"><Clock size={14} className="mr-1.5" /> Confirmar Horário</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center">
+                  <Clock size={14} className="mr-1.5 text-emerald-600" /> Horário Obrigatório da Aprovação <span className="text-red-500 font-bold ml-1">*</span>
+                </label>
                 <input
                   type="time"
+                  required
                   value={horarioConfirmado}
                   onChange={(e) => setHorarioConfirmado(e.target.value)}
                   className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm font-medium"
                 />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Ajustes de horário no mesmo dia são realizados diretamente aqui, sem necessidade de formalizar reagendamento.
+                </p>
               </div>
 
-              {/* Campo de Observação Livre da Logística */}
+              {/* Campo de Observação Livre da Logística (OPCIONAL) */}
               <div className="group/input">
                 <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide flex items-center">
-                  <FileText size={14} className="mr-1.5 text-slate-500" /> Observações para a Operação / Solicitante <span className="text-slate-400 font-normal lowercase ml-1">(opcional)</span>
+                  <FileText size={14} className="mr-1.5 text-slate-500" /> Observações da Aprovação <span className="text-slate-400 font-normal lowercase ml-1">(opcional)</span>
                 </label>
                 <textarea
                   rows={2}
@@ -242,24 +246,19 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
                 ></textarea>
               </div>
 
-              {/* Checkbox para Enviar Notificação ao Solicitante */}
-              <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3.5 flex items-center space-x-3 cursor-pointer select-none" onClick={() => setNotificarSolicitante(!notificarSolicitante)}>
-                <input 
-                  type="checkbox"
-                  id="notificarSolicitante"
-                  checked={notificarSolicitante}
-                  onChange={(e) => setNotificarSolicitante(e.target.checked)}
-                  className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
-                />
-                <label htmlFor="notificarSolicitante" className="text-xs font-bold text-slate-800 cursor-pointer leading-tight">
-                  Enviar notificação de aprovação e detalhes para o solicitante (WhatsApp / Push)
-                </label>
+              {/* Banner Informativo sobre Notificação Automática */}
+              <div className="bg-emerald-50/80 border border-emerald-200/90 rounded-xl p-3.5 flex items-start space-x-3">
+                <Zap className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-slate-700">
+                  <span className="font-bold text-emerald-900 block mb-0.5">Notificação Automática e Obrigatória</span>
+                  Ao confirmar a aprovação, as confirmações serão enviadas automaticamente para o WhatsApp do solicitante e para o App do motorista alocado.
+                </div>
               </div>
 
               <div className="mt-auto pt-6 pb-2">
                 <button
                   onClick={handleAlocar}
-                  disabled={!veiculoId || !motoristaId || isLoading}
+                  disabled={!veiculoId || !motoristaId || !horarioConfirmado.trim() || isLoading}
                   className="relative w-full overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-3.5 rounded-xl font-bold hover:from-emerald-500 hover:to-teal-400 transition-all shadow-lg shadow-emerald-500/30 flex items-center justify-center hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group"
                 >
                   {isLoading ? (
@@ -272,7 +271,7 @@ export const AprovarSolicitacaoDrawer = ({ solicitacao, isOpen, onClose, onSucce
                     </div>
                   ) : (
                     <>
-                      Confirmar <Zap size={18} className="ml-2 group-hover:animate-pulse" />
+                      Confirmar Aprovação <Zap size={18} className="ml-2 group-hover:animate-pulse" />
                     </>
                   )}
                 </button>

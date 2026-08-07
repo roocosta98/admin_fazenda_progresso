@@ -17,10 +17,11 @@ interface AppContextType {
   veiculos: Veiculo[];
   motoristas: Motorista[];
   criarSolicitacao: (dados: Omit<SolicitacaoTransporte, 'id' | 'numeroOS' | 'status' | 'dataSolicitacao'>) => void;
-  aprovarEAgendarSolicitacao: (idOS: string, veiculoId: string, motoristaId: string, horarioConfirmado?: string, observacaoLogistica?: string, notificarSolicitante?: boolean) => void;
+  aprovarEAgendarSolicitacao: (idOS: string, veiculoId: string, motoristaId: string, horarioConfirmado?: string, observacaoLogistica?: string) => void;
   reagendarSolicitacao: (idOS: string, novaData: string, novoHorario: string, observacaoLogistica: string) => void;
   cancelarSolicitacao: (idOS: string, motivo: string) => void;
-  substituirMotorista: (idOS: string, novoMotoristaId: string) => void;
+  substituirMotorista: (idOS: string, novoMotoristaId: string, justificativa?: string) => void;
+  substituirVeiculo: (idOS: string, novoVeiculoId: string, justificativa: string) => void;
   filtrarSolicitacoes: (filtros: { status?: StatusSolicitacao, projetoId?: string, busca?: string }) => SolicitacaoTransporte[];
 }
 
@@ -55,8 +56,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     veiculoId: string, 
     motoristaId: string, 
     horarioConfirmado?: string,
-    observacaoLogistica?: string,
-    notificarSolicitante?: boolean
+    observacaoLogistica?: string
   ) => {
     const veiculo = veiculos.find(v => v.id === veiculoId);
     const motorista = motoristas.find(m => m.id === motoristaId);
@@ -77,18 +77,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return sol;
     }));
 
-    const msgNotif = notificarSolicitante 
-      ? `[Notificação enviada ao Solicitante] OS ${idOS} aprovada. Motorista: ${motorista.nome}. Obs: "${observacaoLogistica || 'Sem observações'}"`
-      : `A OS ${idOS} foi agendada. Motorista ${motorista.nome} e veículo ${veiculo.placa} alocados.`;
-
-    const novaNotif: NotificacaoSimulada = {
-      id: `NOT-${Date.now()}`,
-      mensagem: msgNotif,
+    // Disparo automático e obrigatório de notificações para Solicitante e Motorista
+    const notifSolicitante: NotificacaoSimulada = {
+      id: `NOT-SOL-${Date.now()}`,
+      mensagem: `[WhatsApp Automático] Solicitante notificado: OS ${idOS} APROVADA para ${horarioConfirmado || 'horário agendado'}. Veículo: ${veiculo.modelo} (${veiculo.placa}) | Motorista: ${motorista.nome}.`,
       data: new Date().toISOString(),
       lida: false,
       tipo: 'whatsapp'
     };
-    setNotificacoes(prev => [novaNotif, ...prev]);
+
+    const notifMotorista: NotificacaoSimulada = {
+      id: `NOT-MOT-${Date.now() + 1}`,
+      mensagem: `[App/Push Motorista] Motorista ${motorista.nome} alocado na OS ${idOS} (${veiculo.modelo} - ${veiculo.placa}). Horário: ${horarioConfirmado || 'Definido'}.`,
+      data: new Date().toISOString(),
+      lida: false,
+      tipo: 'sistema'
+    };
+
+    setNotificacoes(prev => [notifSolicitante, notifMotorista, ...prev]);
   };
 
   const reagendarSolicitacao = (idOS: string, novaData: string, novoHorario: string, observacaoLogistica: string) => {
@@ -98,13 +104,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           ...sol,
           dataProgramada: novaData,
           horarioProgramado: novoHorario,
+          reagendada: true,
           observacaoLogistica: sol.observacaoLogistica 
-            ? `${sol.observacaoLogistica}\n${observacaoLogistica}`
-            : observacaoLogistica
+            ? `${sol.observacaoLogistica}\n[Reagendamento]: ${observacaoLogistica}`
+            : `[Reagendamento]: ${observacaoLogistica}`
         };
       }
       return sol;
     }));
+
+    const notifReagendamento: NotificacaoSimulada = {
+      id: `NOT-REAG-${Date.now()}`,
+      mensagem: `[WhatsApp Automático] OS ${idOS} foi REAGENDADA para ${novaData} às ${novoHorario}. Motivo: "${observacaoLogistica}". Solicitante e motorista notificados.`,
+      data: new Date().toISOString(),
+      lida: false,
+      tipo: 'whatsapp'
+    };
+    setNotificacoes(prev => [notifReagendamento, ...prev]);
   };
 
   const cancelarSolicitacao = (idOS: string, motivo: string) => {
@@ -118,9 +134,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }
       return sol;
     }));
+
+    const notifCancelamento: NotificacaoSimulada = {
+      id: `NOT-CANCEL-${Date.now()}`,
+      mensagem: `[WhatsApp Automático] OS ${idOS} CANCELADA pela logística. Motivo: "${motivo}". Solicitante e equipe notificados.`,
+      data: new Date().toISOString(),
+      lida: false,
+      tipo: 'whatsapp'
+    };
+    setNotificacoes(prev => [notifCancelamento, ...prev]);
   };
 
-  const substituirMotorista = (idOS: string, novoMotoristaId: string) => {
+  const substituirMotorista = (idOS: string, novoMotoristaId: string, justificativa?: string) => {
     const motorista = motoristas.find(m => m.id === novoMotoristaId);
     if (!motorista) return;
 
@@ -132,8 +157,43 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }));
 
     const novaNotif: NotificacaoSimulada = {
-      id: `NOT-${Date.now()}`,
-      mensagem: `Motorista substituído. O novo motorista da OS ${idOS} é ${motorista.nome}. Notificações enviadas.`,
+      id: `NOT-SUBMOT-${Date.now()}`,
+      mensagem: `[WhatsApp Automático] Motorista da OS ${idOS} alterado para ${motorista.nome}.${justificativa ? ` Motivo: "${justificativa}".` : ''} Novo motorista e solicitante notificados.`,
+      data: new Date().toISOString(),
+      lida: false,
+      tipo: 'whatsapp'
+    };
+    setNotificacoes(prev => [novaNotif, ...prev]);
+  };
+
+  const substituirVeiculo = (idOS: string, novoVeiculoId: string, justificativa: string) => {
+    const veiculo = veiculos.find(v => v.id === novoVeiculoId);
+    if (!veiculo) return;
+
+    setSolicitacoes(prev => prev.map(sol => {
+      if (sol.numeroOS === idOS) {
+        const veiculoAntigoNome = sol.veiculoAlocado ? `${sol.veiculoAlocado.modelo} (${sol.veiculoAlocado.placa})` : 'Nenhum';
+        const novoHistorico = [
+          ...(sol.historicoTrocaVeiculo || []),
+          {
+            data: new Date().toISOString(),
+            veiculoAnterior: veiculoAntigoNome,
+            veiculoNovo: `${veiculo.modelo} (${veiculo.placa})`,
+            justificativa
+          }
+        ];
+        return {
+          ...sol,
+          veiculoAlocado: veiculo,
+          historicoTrocaVeiculo: novoHistorico
+        };
+      }
+      return sol;
+    }));
+
+    const novaNotif: NotificacaoSimulada = {
+      id: `NOT-SUBVEIC-${Date.now()}`,
+      mensagem: `[WhatsApp Automático] Veículo da OS ${idOS} alterado para ${veiculo.modelo} (${veiculo.placa}). Motivo: "${justificativa}". Solicitante e motorista notificados.`,
       data: new Date().toISOString(),
       lida: false,
       tipo: 'whatsapp'
@@ -170,6 +230,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       reagendarSolicitacao,
       cancelarSolicitacao,
       substituirMotorista,
+      substituirVeiculo,
       filtrarSolicitacoes
     }}>
       {children}
@@ -182,3 +243,4 @@ export const useAppContext = () => {
   if (!context) throw new Error('useAppContext must be used within AppProvider');
   return context;
 };
+

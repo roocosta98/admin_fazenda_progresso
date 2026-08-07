@@ -10,7 +10,7 @@ import { Clock, Truck, User as UserIcon, Search, CheckCircle2, AlertTriangle, Re
 import type { SolicitacaoTransporte } from '../../types';
 
 export const FilaPendentes = () => {
-  const { solicitacoes, veiculos, motoristas, substituirMotorista } = useAppContext();
+  const { solicitacoes, veiculos, motoristas, substituirMotorista, substituirVeiculo } = useAppContext();
   
   const [activeTab, setActiveTab] = useState<'pendentes' | 'aprovados'>('pendentes');
   const [busca, setBusca] = useState('');
@@ -32,6 +32,11 @@ export const FilaPendentes = () => {
   const [novoMotoristaId, setNovoMotoristaId] = useState('');
   const [justificativaTroca, setJustificativaTroca] = useState('');
 
+  // Modal para Trocar Veículo de OS Agendada / Em Execução com Justificativa Obrigatoria
+  const [substituirVeiculoModal, setSubstituirVeiculoModal] = useState<{ open: boolean; os: SolicitacaoTransporte | null }>({ open: false, os: null });
+  const [novoVeiculoId, setNovoVeiculoId] = useState('');
+  const [justificativaTrocaVeiculo, setJustificativaTrocaVeiculo] = useState('');
+
   const handleAnalise = (solicitacao: SolicitacaoTransporte) => {
     setSolicitacaoEmAnalise(solicitacao);
     setDrawerOpen(true);
@@ -49,11 +54,21 @@ export const FilaPendentes = () => {
 
   const handleConfirmarTrocaMotorista = () => {
     if (substituirModal.os && novoMotoristaId && justificativaTroca.trim()) {
-      substituirMotorista(substituirModal.os.numeroOS, novoMotoristaId);
+      substituirMotorista(substituirModal.os.numeroOS, novoMotoristaId, justificativaTroca.trim());
       setSubstituirModal({ open: false, os: null });
       setNovoMotoristaId('');
       setJustificativaTroca('');
-      handleSuccess(`Motorista da OS ${substituirModal.os.numeroOS} trocado com sucesso! Justificativa registrada.`);
+      handleSuccess(`Motorista da OS ${substituirModal.os.numeroOS} trocado com sucesso! Notificações enviadas.`);
+    }
+  };
+
+  const handleConfirmarTrocaVeiculo = () => {
+    if (substituirVeiculoModal.os && novoVeiculoId && justificativaTrocaVeiculo.trim()) {
+      substituirVeiculo(substituirVeiculoModal.os.numeroOS, novoVeiculoId, justificativaTrocaVeiculo.trim());
+      setSubstituirVeiculoModal({ open: false, os: null });
+      setNovoVeiculoId('');
+      setJustificativaTrocaVeiculo('');
+      handleSuccess(`Veículo da OS ${substituirVeiculoModal.os.numeroOS} substituído com sucesso! Notificação enviada.`);
     }
   };
 
@@ -359,21 +374,32 @@ export const FilaPendentes = () => {
             <div className="space-y-4">
               <h4 className="font-bold text-slate-800 uppercase tracking-wide text-xs">Alocação da Logística</h4>
               <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 space-y-3">
-                <div className="flex items-start">
-                  <Truck className="w-4 h-4 text-emerald-600 mt-0.5 mr-3" />
-                  <div>
-                    <p className="text-xs font-semibold text-emerald-700 uppercase">Veículo Alocado</p>
-                    <p className="text-slate-800 font-bold text-sm">
-                      {solicitacaoVisualizar.veiculoAlocado?.modelo || 'N/A'} 
-                      {solicitacaoVisualizar.veiculoAlocado?.placa && (
-                        <span className="font-mono font-normal text-slate-500 text-sm bg-white px-1.5 py-0.5 rounded ml-1.5 border border-emerald-200">
-                          {solicitacaoVisualizar.veiculoAlocado.placa}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
                 <div className="flex items-start justify-between">
+                  <div className="flex items-start">
+                    <Truck className="w-4 h-4 text-emerald-600 mt-0.5 mr-3" />
+                    <div>
+                      <p className="text-xs font-semibold text-emerald-700 uppercase">Veículo Alocado</p>
+                      <p className="text-slate-800 font-bold text-sm">
+                        {solicitacaoVisualizar.veiculoAlocado?.modelo || 'N/A'} 
+                        {solicitacaoVisualizar.veiculoAlocado?.placa && (
+                          <span className="font-mono font-normal text-slate-500 text-sm bg-white px-1.5 py-0.5 rounded ml-1.5 border border-emerald-200">
+                            {solicitacaoVisualizar.veiculoAlocado.placa}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setDetalhesOpen(false);
+                      setSubstituirVeiculoModal({ open: true, os: solicitacaoVisualizar });
+                    }}
+                    className="text-xs font-bold text-emerald-700 hover:underline flex items-center bg-white px-2.5 py-1 rounded-lg border border-emerald-200 shadow-sm"
+                  >
+                    <RefreshCw size={12} className="mr-1" /> Trocar Veículo
+                  </button>
+                </div>
+                <div className="flex items-start justify-between pt-2 border-t border-emerald-100">
                   <div className="flex items-start">
                     <UserIcon className="w-4 h-4 text-emerald-600 mt-0.5 mr-3" />
                     <div>
@@ -386,9 +412,9 @@ export const FilaPendentes = () => {
                       setDetalhesOpen(false);
                       setSubstituirModal({ open: true, os: solicitacaoVisualizar });
                     }}
-                    className="text-xs font-bold text-blue-600 hover:underline flex items-center"
+                    className="text-xs font-bold text-blue-600 hover:underline flex items-center bg-white px-2.5 py-1 rounded-lg border border-blue-200 shadow-sm"
                   >
-                    <RefreshCw size={12} className="mr-1" /> Trocar
+                    <RefreshCw size={12} className="mr-1" /> Trocar Motorista
                   </button>
                 </div>
               </div>
@@ -488,6 +514,78 @@ export const FilaPendentes = () => {
               className="px-6 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center"
             >
               <RefreshCw size={15} className="mr-2" /> Confirmar Troca
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Troca de Veículo com Justificativa Obrigatoria */}
+      <Modal 
+        isOpen={substituirVeiculoModal.open} 
+        onClose={() => { setSubstituirVeiculoModal({ open: false, os: null }); setNovoVeiculoId(''); setJustificativaTrocaVeiculo(''); }} 
+        title="Trocar Veículo de OS Agendada"
+      >
+        <div className="p-6 space-y-5">
+          <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 flex items-start space-x-3">
+            <Truck className="text-emerald-600 shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-sm font-bold text-slate-800">Troca de Veículo na Operação</p>
+              <p className="text-xs text-slate-600 mt-1">
+                Substituição do veículo alocado na <strong>{substituirVeiculoModal.os?.numeroOS}</strong> ({substituirVeiculoModal.os?.tipoServico}). 
+                É necessário registrar a justificativa operacional.
+              </p>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
+              Novo Veículo Compatível <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={novoVeiculoId}
+              onChange={(e) => setNovoVeiculoId(e.target.value)}
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm font-medium appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat"
+            >
+              <option value="">Selecione o novo veículo...</option>
+              {veiculos
+                .filter(v => v.id !== substituirVeiculoModal.os?.veiculoAlocado?.id && v.status !== 'manutencao')
+                .map(v => (
+                  <option key={v.id} value={v.id}>
+                    {v.placa} - {v.modelo} ({v.tipo})
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
+              Justificativa Obrigatória da Troca <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={3}
+              required
+              placeholder="Ex: Veículo anterior apresentou falha mecânica / Remanejamento por prioridade de carga..."
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-600 resize-none shadow-sm font-medium text-slate-800"
+              value={justificativaTrocaVeiculo}
+              onChange={(e) => setJustificativaTrocaVeiculo(e.target.value)}
+            ></textarea>
+          </div>
+
+          <div className="pt-2 flex justify-end space-x-3">
+            <button 
+              type="button"
+              onClick={() => { setSubstituirVeiculoModal({ open: false, os: null }); setNovoVeiculoId(''); setJustificativaTrocaVeiculo(''); }}
+              className="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors text-sm"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmarTrocaVeiculo}
+              disabled={!novoVeiculoId || !justificativaTrocaVeiculo.trim()}
+              className="px-6 py-2.5 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center"
+            >
+              <RefreshCw size={15} className="mr-2" /> Confirmar Troca de Veículo
             </button>
           </div>
         </div>

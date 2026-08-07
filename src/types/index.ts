@@ -59,6 +59,14 @@ export interface SolicitacaoTransporte {
   };
   observacaoLogistica?: string;
   motivoCancelamento?: string;
+  reagendada?: boolean;
+  emAtraso?: boolean;
+  historicoTrocaVeiculo?: Array<{
+    data: string;
+    veiculoAnterior: string;
+    veiculoNovo: string;
+    justificativa: string;
+  }>;
   indicadorComunicacao?: { status: 'online' | 'offline' | 'alerta'; ultimaComunicacao: string; mensagem?: string };
 }
 
