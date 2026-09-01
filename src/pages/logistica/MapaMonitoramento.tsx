@@ -29,7 +29,9 @@ import {
   Clock,
   Tag,
   Wrench,
-  History
+  History,
+  Pause,
+  Play
 } from 'lucide-react';
 import { SlideOverDrawer } from '../../components/common/SlideOverDrawer';
 
@@ -212,6 +214,7 @@ export const MapaMonitoramento = () => {
   const [trajeto, setTrajeto] = useState<TrajetoPonto[]>([]);
   const [trajetoLoading, setTrajetoLoading] = useState(false);
   const [historicoAberto, setHistoricoAberto] = useState(false);
+  const [autoAtualizar, setAutoAtualizar] = useState(true);
 
   const carregarPosicoes = useCallback(async () => {
     try {
@@ -242,10 +245,11 @@ export const MapaMonitoramento = () => {
   }, []);
 
   useEffect(() => {
+    if (!autoAtualizar) return;
     carregarPosicoes();
     const interval = setInterval(carregarPosicoes, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [carregarPosicoes]);
+  }, [carregarPosicoes, autoAtualizar]);
 
   useEffect(() => {
     const equipamentoId = selectedEquipamento?.EquipamentoId;
@@ -620,6 +624,18 @@ export const MapaMonitoramento = () => {
             )}
             <button onClick={carregarPosicoes} className="ml-2 text-slate-400 hover:text-emerald-600" title="Atualizar agora">
               <RefreshCw size={13} />
+            </button>
+            <button
+              onClick={() => setAutoAtualizar((atual) => !atual)}
+              className={`ml-2 flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-bold transition-colors ${
+                autoAtualizar
+                  ? 'text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
+                  : 'text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100'
+              }`}
+              title={autoAtualizar ? 'Pausar atualizações automáticas' : 'Iniciar atualizações automáticas'}
+            >
+              {autoAtualizar ? <Pause size={12} /> : <Play size={12} />}
+              {autoAtualizar ? 'Pausar' : 'Iniciar'}
             </button>
           </div>
 
