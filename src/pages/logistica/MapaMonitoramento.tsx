@@ -75,6 +75,8 @@ interface PosicaoEquipamento {
   TempoMotorOciosoSegundos: number | null;
   AreaOperacional: number | null;
   OperacaoColetadoEmUtc: string | null;
+  // A API usa p.* — a view do cliente pode trazer outras colunas além das listadas acima
+  [campo: string]: unknown;
 }
 
 const formatNumero = (valor: number | null, casas = 1) => (valor === null || valor === undefined ? '—' : valor.toFixed(casas));
@@ -88,6 +90,28 @@ const mediaUmidadeSolo = (p: PosicaoEquipamento) => {
 const formatHoras = (segundos: number | null) => {
   if (segundos === null || segundos === undefined) return '—';
   return `${(segundos / 3600).toFixed(1)}h`;
+};
+
+// % do tempo com motor ligado que o equipamento passou parado (ocioso)
+const percentualTempoParado = (p: PosicaoEquipamento) => {
+  const ocioso = p.TempoMotorOciosoSegundos;
+  const ligado = p.TempoMotorLigadoSegundos;
+  if (ocioso === null || ocioso === undefined || !ligado) return null;
+  return (ocioso / ligado) * 100;
+};
+
+// Nomes de campo do banco (ex: "PorcentagemCargaBateria") viram rótulo legível ("Porcentagem Carga Bateria")
+const formatRotuloCampo = (chave: string) => chave.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+
+const formatValorCampo = (valor: unknown): string => {
+  if (valor === null || valor === undefined || valor === '') return '—';
+  if (typeof valor === 'boolean') return valor ? 'Sim' : 'Não';
+  if (typeof valor === 'number') return Number.isInteger(valor) ? String(valor) : valor.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(valor)) {
+    const data = new Date(valor);
+    return Number.isNaN(data.getTime()) ? valor : data.toLocaleString('pt-BR');
+  }
+  return String(valor);
 };
 
 type StatusComunicacao = 'online' | 'atencao' | 'offline' | 'sem_dados';
@@ -340,25 +364,40 @@ export const MapaMonitoramento = () => {
                       </div>
                     )}
 
-                    {(selectedEquipamento.ConsumoMedioLitros !== null || selectedEquipamento.RpmMedio !== null || selectedEquipamento.AreaOperacional !== null) && (
+                    {(selectedEquipamento.ConsumoMedioLitros !== null || selectedEquipamento.RpmMedio !== null || selectedEquipamento.AreaOperacional !== null || selectedEquipamento.VelocidadeMediaOperacao !== null || selectedEquipamento.TempoMotorOciosoSegundos !== null) && (
                       <div className="pt-1 border-t border-slate-100">
                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Operação</p>
                         <div className="grid grid-cols-2 gap-1.5">
+                          {selectedEquipamento.VelocidadeMediaOperacao !== null && (
+                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
+                              <span className="text-slate-500 flex items-center text-[10px]"><Gauge size={12} className="mr-1 text-blue-600" /> Vel. média:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.VelocidadeMediaOperacao, 1)} km/h</span>
+                            </div>
+                          )}
+                          {selectedEquipamento.RpmMedio !== null && (
+                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
+                              <span className="text-slate-500 flex items-center text-[10px]">RPM médio:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.RpmMedio, 0)}</span>
+                            </div>
+                          )}
+                          {selectedEquipamento.TempoMotorOciosoSegundos !== null && (
+                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
+                              <span className="text-slate-500 flex items-center text-[10px]"><Clock size={12} className="mr-1 text-amber-600" /> Parado:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">
+                                {formatHoras(selectedEquipamento.TempoMotorOciosoSegundos)}
+                                {percentualTempoParado(selectedEquipamento) !== null && ` (${formatNumero(percentualTempoParado(selectedEquipamento), 0)}%)`}
+                              </span>
+                            </div>
+                          )}
                           {selectedEquipamento.ConsumoMedioLitros !== null && (
                             <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
                               <span className="text-slate-500 flex items-center text-[10px]"><Fuel size={12} className="mr-1 text-rose-600" /> Combust.:</span>
                               <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.ConsumoMedioLitros, 1)}L</span>
                             </div>
                           )}
-                          {selectedEquipamento.RpmMedio !== null && (
-                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
-                              <span className="text-slate-500 flex items-center text-[10px]">RPM:</span>
-                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.RpmMedio, 0)}</span>
-                            </div>
-                          )}
                           {selectedEquipamento.TempoMotorLigadoSegundos !== null && (
                             <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
-                              <span className="text-slate-500 flex items-center text-[10px]"><Clock size={12} className="mr-1 text-slate-400" /> Motor:</span>
+                              <span className="text-slate-500 flex items-center text-[10px]">Motor ligado:</span>
                               <span className="font-mono font-bold text-slate-900 text-xs">{formatHoras(selectedEquipamento.TempoMotorLigadoSegundos)}</span>
                             </div>
                           )}
@@ -375,6 +414,18 @@ export const MapaMonitoramento = () => {
                     <div className="pt-1 flex items-center justify-between">
                       {statusBadge(getStatusComunicacao(selectedEquipamento.MinutosSemComunicacao))}
                       <span className="text-slate-400 text-[10px]">{formatDataHora(selectedEquipamento.DataHoraOperacao)}</span>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Todos os dados do equipamento</p>
+                      <div className="space-y-1">
+                        {Object.entries(selectedEquipamento).map(([chave, valor]) => (
+                          <div key={chave} className="flex justify-between items-start gap-2 text-[10.5px] py-0.5 border-b border-slate-50">
+                            <span className="text-slate-400 shrink-0">{formatRotuloCampo(chave)}</span>
+                            <span className="font-mono font-medium text-slate-700 text-right break-all">{formatValorCampo(valor)}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
