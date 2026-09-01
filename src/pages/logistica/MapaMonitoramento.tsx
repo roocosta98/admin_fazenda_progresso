@@ -96,34 +96,51 @@ interface PosicaoEquipamento {
   [campo: string]: unknown;
 }
 
-const formatNumero = (valor: number | null, casas = 1) => (valor === null || valor === undefined ? '—' : valor.toFixed(casas));
+// Colunas decimal/numeric do SQL Server chegam como STRING pelo driver mssql (evita perda de
+// precisão), não como number — mesmo com o tipo declarado como number|null nas interfaces
+// abaixo. Todo lugar que faz conta ou .toFixed() precisa passar por aqui primeiro.
+const toNumero = (valor: unknown): number | null => {
+  if (valor === null || valor === undefined || valor === '') return null;
+  const num = typeof valor === 'number' ? valor : Number(valor);
+  return Number.isFinite(num) ? num : null;
+};
+
+const formatNumero = (valor: unknown, casas = 1) => {
+  const num = toNumero(valor);
+  return num === null ? '—' : num.toFixed(casas);
+};
 
 const mediaUmidadeSolo = (p: PosicaoEquipamento) => {
-  const valores = [p.UmidadeSolo, p.UmidadeSolo2, p.UmidadeSolo3].filter((v): v is number => v !== null && v !== undefined);
+  const valores = [toNumero(p.UmidadeSolo), toNumero(p.UmidadeSolo2), toNumero(p.UmidadeSolo3)].filter((v): v is number => v !== null);
   if (valores.length === 0) return null;
   return valores.reduce((soma, v) => soma + v, 0) / valores.length;
 };
 
-const formatHoras = (segundos: number | null) => {
-  if (segundos === null || segundos === undefined) return '—';
-  return `${(segundos / 3600).toFixed(1)}h`;
+const formatHoras = (segundos: unknown) => {
+  const num = toNumero(segundos);
+  if (num === null) return '—';
+  return `${(num / 3600).toFixed(1)}h`;
 };
 
 // % do tempo com motor ligado que o equipamento passou parado (ocioso)
 const percentualTempoParado = (p: PosicaoEquipamento) => {
-  const ocioso = p.TempoMotorOciosoSegundos;
-  const ligado = p.TempoMotorLigadoSegundos;
-  if (ocioso === null || ocioso === undefined || !ligado) return null;
+  const ocioso = toNumero(p.TempoMotorOciosoSegundos);
+  const ligado = toNumero(p.TempoMotorLigadoSegundos);
+  if (ocioso === null || !ligado) return null;
   return (ocioso / ligado) * 100;
 };
 
 // Prefere o valor oficial de LeiturasOperacao; cai pro estimado via GPS (últimas 24h) quando não existir.
 // O booleano diz se o valor veio estimado, pra UI poder sinalizar isso.
-const velocidadeMedia = (p: PosicaoEquipamento): [number | null, boolean] =>
-  p.VelocidadeMediaOperacao !== null ? [p.VelocidadeMediaOperacao, false] : [p.VelocidadeMediaCalculadaKmh, true];
+const velocidadeMedia = (p: PosicaoEquipamento): [number | null, boolean] => {
+  const oficial = toNumero(p.VelocidadeMediaOperacao);
+  return oficial !== null ? [oficial, false] : [toNumero(p.VelocidadeMediaCalculadaKmh), true];
+};
 
-const tempoParadoSegundos = (p: PosicaoEquipamento): [number | null, boolean] =>
-  p.TempoMotorOciosoSegundos !== null ? [p.TempoMotorOciosoSegundos, false] : [p.TempoParadoSegundosCalculado, true];
+const tempoParadoSegundos = (p: PosicaoEquipamento): [number | null, boolean] => {
+  const oficial = toNumero(p.TempoMotorOciosoSegundos);
+  return oficial !== null ? [oficial, false] : [toNumero(p.TempoParadoSegundosCalculado), true];
+};
 
 // Nomes de campo do banco (ex: "PorcentagemCargaBateria") viram rótulo legível ("Porcentagem Carga Bateria")
 const formatRotuloCampo = (chave: string) => chave.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
@@ -185,7 +202,7 @@ const RastroPolyline = ({ pontos }: { pontos: TrajetoPonto[] }) => {
     if (!map || pontos.length < 2) return;
 
     const polyline = new google.maps.Polyline({
-      path: pontos.map((p) => ({ lat: p.Latitude, lng: p.Longitude })),
+      path: pontos.map((p) => ({ lat: toNumero(p.Latitude) ?? 0, lng: toNumero(p.Longitude) ?? 0 })),
       geodesic: true,
       strokeColor: '#059669',
       strokeOpacity: 0.85,
@@ -281,8 +298,10 @@ export const MapaMonitoramento = () => {
 
   const handleSelectEquipamento = (equipamento: PosicaoEquipamento) => {
     setSelectedEquipamento(equipamento);
-    if (equipamento.Latitude !== null && equipamento.Longitude !== null) {
-      setMapCenter({ lat: equipamento.Latitude, lng: equipamento.Longitude });
+    const lat = toNumero(equipamento.Latitude);
+    const lng = toNumero(equipamento.Longitude);
+    if (lat !== null && lng !== null) {
+      setMapCenter({ lat, lng });
     }
   };
 
@@ -351,7 +370,7 @@ export const MapaMonitoramento = () => {
             {posicoesFiltradas.map((p) => {
               const status = getStatusComunicacao(p.MinutosSemComunicacao);
               const isSelected = selectedEquipamento?.EquipamentoId === p.EquipamentoId;
-              const position = { lat: p.Latitude as number, lng: p.Longitude as number };
+              const position = { lat: toNumero(p.Latitude) ?? 0, lng: toNumero(p.Longitude) ?? 0 };
 
               return (
                 <AdvancedMarker
@@ -365,9 +384,9 @@ export const MapaMonitoramento = () => {
 
                     <div className={`relative w-11 h-11 rounded-2xl flex items-center justify-center border-2 shadow-xl transition-all ${pinClasses(status)} ${isSelected ? 'ring-8 ring-emerald-500/30 border-emerald-600 bg-emerald-50 scale-110' : 'hover:border-emerald-600'}`}>
                       <Truck size={16} />
-                      {p.VelocidadeKmh !== null && (
+                      {toNumero(p.VelocidadeKmh) !== null && (
                         <span className="absolute -top-2 -right-2 text-[9px] font-black px-1.5 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-white shadow-md">
-                          {Math.round(p.VelocidadeKmh)}km/h
+                          {Math.round(toNumero(p.VelocidadeKmh)!)}km/h
                         </span>
                       )}
                     </div>
@@ -383,7 +402,7 @@ export const MapaMonitoramento = () => {
 
             {selectedEquipamento && selectedEquipamento.Latitude !== null && selectedEquipamento.Longitude !== null && (
               <InfoWindow
-                position={{ lat: selectedEquipamento.Latitude, lng: selectedEquipamento.Longitude }}
+                position={{ lat: toNumero(selectedEquipamento.Latitude) ?? 0, lng: toNumero(selectedEquipamento.Longitude) ?? 0 }}
                 onCloseClick={() => setSelectedEquipamento(null)}
                 headerContent={
                   <div className="flex items-center space-x-2">
@@ -457,7 +476,7 @@ export const MapaMonitoramento = () => {
                           <div className="grid grid-cols-2 gap-1.5 pt-1">
                             <div className={`p-1.5 rounded-lg flex items-center justify-between border ${desatualizado ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
                               <span className="text-slate-500 flex items-center text-[10px]"><Gauge size={12} className="mr-1 text-blue-600" /> Vel:</span>
-                              <span className={`font-mono font-bold text-xs ${desatualizado ? 'text-amber-700' : 'text-slate-900'}`}>{selectedEquipamento.VelocidadeKmh ?? '—'} km/h</span>
+                              <span className={`font-mono font-bold text-xs ${desatualizado ? 'text-amber-700' : 'text-slate-900'}`}>{formatNumero(selectedEquipamento.VelocidadeKmh, 1)} km/h</span>
                             </div>
                             <div className={`p-1.5 rounded-lg flex items-center justify-between border ${desatualizado ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
                               <span className="text-slate-500 flex items-center text-[10px]">Estado:</span>
@@ -740,7 +759,7 @@ export const MapaMonitoramento = () => {
                           {p.CodigoTalhao ? `Talhão ${p.CodigoTalhao}` : p.OperacaoDescricao ?? '—'}
                         </span>
                         <span className={`font-mono font-bold ${status === 'online' ? 'text-emerald-700' : 'text-amber-600'}`} title={status === 'online' ? undefined : 'Última leitura conhecida — pode estar desatualizada'}>
-                          {p.VelocidadeKmh ?? 0} km/h{status === 'online' ? '' : '*'}
+                          {formatNumero(p.VelocidadeKmh, 1)} km/h{status === 'online' ? '' : '*'}
                         </span>
                       </div>
                     </div>
@@ -773,7 +792,7 @@ export const MapaMonitoramento = () => {
                   <LineChart
                     data={trajeto.map((p) => ({
                       hora: new Date(p.ColetadoEmUtc).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                      velocidade: p.VelocidadeKmh ?? 0,
+                      velocidade: toNumero(p.VelocidadeKmh) ?? 0,
                     }))}
                     margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                   >
@@ -794,11 +813,11 @@ export const MapaMonitoramento = () => {
               </div>
               <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-center">
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Vel. máxima</p>
-                <p className="text-lg font-black text-slate-800">{formatNumero(Math.max(...trajeto.map((p) => p.VelocidadeKmh ?? 0)), 0)} km/h</p>
+                <p className="text-lg font-black text-slate-800">{formatNumero(Math.max(...trajeto.map((p) => toNumero(p.VelocidadeKmh) ?? 0)), 0)} km/h</p>
               </div>
               <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-center">
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Vel. média</p>
-                <p className="text-lg font-black text-slate-800">{formatNumero(trajeto.reduce((soma, p) => soma + (p.VelocidadeKmh ?? 0), 0) / trajeto.length, 1)} km/h</p>
+                <p className="text-lg font-black text-slate-800">{formatNumero(trajeto.reduce((soma, p) => soma + (toNumero(p.VelocidadeKmh) ?? 0), 0) / trajeto.length, 1)} km/h</p>
               </div>
             </div>
 
