@@ -17,7 +17,13 @@ import {
   Layers,
   Map as MapIcon,
   WifiOff,
-  RefreshCw
+  RefreshCw,
+  BatteryFull,
+  Droplets,
+  Thermometer,
+  Fuel,
+  Clock,
+  Tag
 } from 'lucide-react';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyAeQIKfNplzSj3wnUdIVBSnhzDb0OuFPwM';
@@ -29,7 +35,9 @@ const POLL_INTERVAL_MS = 15000;
 // Centro aproximado da Fazenda Progresso em Mucugê / Chapada Diamantina - BA
 const FAZENDA_CENTER = { lat: -13.0047, lng: -41.3708 };
 
-// Espelha exatamente as colunas de vw_UltimaPosicao (SELECT * FROM vw_UltimaPosicao ORDER BY 2)
+// vw_UltimaPosicao (SELECT * FROM vw_UltimaPosicao ORDER BY 2, como o cliente indicou), enriquecida
+// com o tipo do equipamento (Equipamentos/TiposEquipamento) e a leitura mais recente de sensores
+// e de operação (LeiturasSensor/LeiturasOperacao) — ver api/frota/posicoes.ts
 interface PosicaoEquipamento {
   EquipamentoId: number;
   CodigoEquipamento: string;
@@ -47,7 +55,40 @@ interface PosicaoEquipamento {
   DataHoraOperacao: string | null;
   ColetadoEm: string | null;
   MinutosSemComunicacao: number | null;
+  TipoEquipamento: string | null;
+  // Última leitura de LeiturasSensor
+  PorcentagemCargaBateria: number | null;
+  TensaoBateria: number | null;
+  TemperaturaBateria: number | null;
+  UmidadeSolo: number | null;
+  UmidadeSolo2: number | null;
+  UmidadeSolo3: number | null;
+  TemperaturaAmbiente: number | null;
+  EnergiaGeradaDia: number | null;
+  EnergiaConsumidaDia: number | null;
+  SensorColetadoEmUtc: string | null;
+  // Última leitura de LeiturasOperacao
+  ConsumoMedioLitros: number | null;
+  VelocidadeMediaOperacao: number | null;
+  RpmMedio: number | null;
+  TempoMotorLigadoSegundos: number | null;
+  TempoMotorOciosoSegundos: number | null;
+  AreaOperacional: number | null;
+  OperacaoColetadoEmUtc: string | null;
 }
+
+const formatNumero = (valor: number | null, casas = 1) => (valor === null || valor === undefined ? '—' : valor.toFixed(casas));
+
+const mediaUmidadeSolo = (p: PosicaoEquipamento) => {
+  const valores = [p.UmidadeSolo, p.UmidadeSolo2, p.UmidadeSolo3].filter((v): v is number => v !== null && v !== undefined);
+  if (valores.length === 0) return null;
+  return valores.reduce((soma, v) => soma + v, 0) / valores.length;
+};
+
+const formatHoras = (segundos: number | null) => {
+  if (segundos === null || segundos === undefined) return '—';
+  return `${(segundos / 3600).toFixed(1)}h`;
+};
 
 type StatusComunicacao = 'online' | 'atencao' | 'offline' | 'sem_dados';
 
@@ -230,8 +271,14 @@ export const MapaMonitoramento = () => {
                   </div>
                 }
               >
-                <div className="w-64 p-1 text-slate-800 text-xs">
-                  <h4 className="text-sm font-black text-slate-900 leading-tight mb-2">{selectedEquipamento.Nome}</h4>
+                <div className="w-72 p-1 text-slate-800 text-xs max-h-96 overflow-y-auto">
+                  <h4 className="text-sm font-black text-slate-900 leading-tight">{selectedEquipamento.Nome}</h4>
+                  {selectedEquipamento.TipoEquipamento && (
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide mb-2 flex items-center">
+                      <Tag size={10} className="mr-1" /> {selectedEquipamento.TipoEquipamento}
+                    </p>
+                  )}
+                  {!selectedEquipamento.TipoEquipamento && <div className="mb-2" />}
 
                   <div className="space-y-2 text-xs">
                     {selectedEquipamento.Operador && (
@@ -260,6 +307,70 @@ export const MapaMonitoramento = () => {
                         <span className="font-bold text-slate-900 text-xs truncate max-w-[70px]">{selectedEquipamento.Estado ?? '—'}</span>
                       </div>
                     </div>
+
+                    {(selectedEquipamento.PorcentagemCargaBateria !== null || mediaUmidadeSolo(selectedEquipamento) !== null || selectedEquipamento.TemperaturaAmbiente !== null) && (
+                      <div className="pt-1 border-t border-slate-100">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Sensores</p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {selectedEquipamento.PorcentagemCargaBateria !== null && (
+                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
+                              <span className="text-slate-500 flex items-center text-[10px]"><BatteryFull size={12} className="mr-1 text-emerald-600" /> Bateria:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.PorcentagemCargaBateria, 0)}%</span>
+                            </div>
+                          )}
+                          {mediaUmidadeSolo(selectedEquipamento) !== null && (
+                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
+                              <span className="text-slate-500 flex items-center text-[10px]"><Droplets size={12} className="mr-1 text-blue-600" /> Solo:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(mediaUmidadeSolo(selectedEquipamento), 0)}%</span>
+                            </div>
+                          )}
+                          {selectedEquipamento.TemperaturaAmbiente !== null && (
+                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
+                              <span className="text-slate-500 flex items-center text-[10px]"><Thermometer size={12} className="mr-1 text-amber-600" /> Temp:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.TemperaturaAmbiente, 0)}°C</span>
+                            </div>
+                          )}
+                          {selectedEquipamento.TensaoBateria !== null && (
+                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
+                              <span className="text-slate-500 flex items-center text-[10px]">Tensão:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.TensaoBateria, 1)}V</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {(selectedEquipamento.ConsumoMedioLitros !== null || selectedEquipamento.RpmMedio !== null || selectedEquipamento.AreaOperacional !== null) && (
+                      <div className="pt-1 border-t border-slate-100">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Operação</p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {selectedEquipamento.ConsumoMedioLitros !== null && (
+                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
+                              <span className="text-slate-500 flex items-center text-[10px]"><Fuel size={12} className="mr-1 text-rose-600" /> Combust.:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.ConsumoMedioLitros, 1)}L</span>
+                            </div>
+                          )}
+                          {selectedEquipamento.RpmMedio !== null && (
+                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
+                              <span className="text-slate-500 flex items-center text-[10px]">RPM:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.RpmMedio, 0)}</span>
+                            </div>
+                          )}
+                          {selectedEquipamento.TempoMotorLigadoSegundos !== null && (
+                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
+                              <span className="text-slate-500 flex items-center text-[10px]"><Clock size={12} className="mr-1 text-slate-400" /> Motor:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">{formatHoras(selectedEquipamento.TempoMotorLigadoSegundos)}</span>
+                            </div>
+                          )}
+                          {selectedEquipamento.AreaOperacional !== null && (
+                            <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
+                              <span className="text-slate-500 flex items-center text-[10px]">Área:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.AreaOperacional, 1)}ha</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="pt-1 flex items-center justify-between">
                       {statusBadge(getStatusComunicacao(selectedEquipamento.MinutosSemComunicacao))}
@@ -402,9 +513,17 @@ export const MapaMonitoramento = () => {
                       </div>
 
                       <p className="text-xs font-bold text-slate-800 truncate">{p.Nome}</p>
+                      {p.TipoEquipamento && (
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">{p.TipoEquipamento}</p>
+                      )}
                       <p className="text-[11px] text-slate-500 font-medium mt-0.5 truncate">
                         {p.Operador ?? 'Sem operador'} {p.GrupoFrente ? `• ${p.GrupoFrente}` : ''}
                       </p>
+                      {p.PorcentagemCargaBateria !== null && (
+                        <p className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center">
+                          <BatteryFull size={11} className="mr-1 text-emerald-600" /> {formatNumero(p.PorcentagemCargaBateria, 0)}% bateria
+                        </p>
+                      )}
 
                       <div className="flex justify-between items-center text-[11px] font-medium border-t border-slate-100 pt-2.5 mt-2.5">
                         <span className="text-slate-500 flex items-center">
