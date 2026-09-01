@@ -75,6 +75,11 @@ interface PosicaoEquipamento {
   TempoMotorOciosoSegundos: number | null;
   AreaOperacional: number | null;
   OperacaoColetadoEmUtc: string | null;
+  // Estimados a partir do histórico de GPS das últimas 24h (LeiturasLocalizacao),
+  // usados quando LeiturasOperacao ainda não tem o valor oficial calculado pelo cliente
+  VelocidadeMediaCalculadaKmh: number | null;
+  TempoParadoSegundosCalculado: number | null;
+  QtdLeiturasJanela: number | null;
   // A API usa p.* — a view do cliente pode trazer outras colunas além das listadas acima
   [campo: string]: unknown;
 }
@@ -99,6 +104,14 @@ const percentualTempoParado = (p: PosicaoEquipamento) => {
   if (ocioso === null || ocioso === undefined || !ligado) return null;
   return (ocioso / ligado) * 100;
 };
+
+// Prefere o valor oficial de LeiturasOperacao; cai pro estimado via GPS (últimas 24h) quando não existir.
+// O booleano diz se o valor veio estimado, pra UI poder sinalizar isso.
+const velocidadeMedia = (p: PosicaoEquipamento): [number | null, boolean] =>
+  p.VelocidadeMediaOperacao !== null ? [p.VelocidadeMediaOperacao, false] : [p.VelocidadeMediaCalculadaKmh, true];
+
+const tempoParadoSegundos = (p: PosicaoEquipamento): [number | null, boolean] =>
+  p.TempoMotorOciosoSegundos !== null ? [p.TempoMotorOciosoSegundos, false] : [p.TempoParadoSegundosCalculado, true];
 
 // Nomes de campo do banco (ex: "PorcentagemCargaBateria") viram rótulo legível ("Porcentagem Carga Bateria")
 const formatRotuloCampo = (chave: string) => chave.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
@@ -364,14 +377,20 @@ export const MapaMonitoramento = () => {
                       </div>
                     )}
 
-                    {(selectedEquipamento.ConsumoMedioLitros !== null || selectedEquipamento.RpmMedio !== null || selectedEquipamento.AreaOperacional !== null || selectedEquipamento.VelocidadeMediaOperacao !== null || selectedEquipamento.TempoMotorOciosoSegundos !== null) && (
+                    {(() => {
+                      const [velMedia, velEstimada] = velocidadeMedia(selectedEquipamento);
+                      const [parado, paradoEstimado] = tempoParadoSegundos(selectedEquipamento);
+                      const temAlgumDado = selectedEquipamento.ConsumoMedioLitros !== null || selectedEquipamento.RpmMedio !== null ||
+                        selectedEquipamento.AreaOperacional !== null || velMedia !== null || parado !== null;
+                      if (!temAlgumDado) return null;
+                      return (
                       <div className="pt-1 border-t border-slate-100">
                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Operação</p>
                         <div className="grid grid-cols-2 gap-1.5">
-                          {selectedEquipamento.VelocidadeMediaOperacao !== null && (
+                          {velMedia !== null && (
                             <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
-                              <span className="text-slate-500 flex items-center text-[10px]"><Gauge size={12} className="mr-1 text-blue-600" /> Vel. média:</span>
-                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.VelocidadeMediaOperacao, 1)} km/h</span>
+                              <span className="text-slate-500 flex items-center text-[10px]"><Gauge size={12} className="mr-1 text-blue-600" /> Vel. média{velEstimada ? '*' : ''}:</span>
+                              <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(velMedia, 1)} km/h</span>
                             </div>
                           )}
                           {selectedEquipamento.RpmMedio !== null && (
@@ -380,12 +399,12 @@ export const MapaMonitoramento = () => {
                               <span className="font-mono font-bold text-slate-900 text-xs">{formatNumero(selectedEquipamento.RpmMedio, 0)}</span>
                             </div>
                           )}
-                          {selectedEquipamento.TempoMotorOciosoSegundos !== null && (
+                          {parado !== null && (
                             <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
-                              <span className="text-slate-500 flex items-center text-[10px]"><Clock size={12} className="mr-1 text-amber-600" /> Parado:</span>
+                              <span className="text-slate-500 flex items-center text-[10px]"><Clock size={12} className="mr-1 text-amber-600" /> Parado{paradoEstimado ? '*' : ''}:</span>
                               <span className="font-mono font-bold text-slate-900 text-xs">
-                                {formatHoras(selectedEquipamento.TempoMotorOciosoSegundos)}
-                                {percentualTempoParado(selectedEquipamento) !== null && ` (${formatNumero(percentualTempoParado(selectedEquipamento), 0)}%)`}
+                                {formatHoras(parado)}
+                                {!paradoEstimado && percentualTempoParado(selectedEquipamento) !== null && ` (${formatNumero(percentualTempoParado(selectedEquipamento), 0)}%)`}
                               </span>
                             </div>
                           )}
@@ -408,8 +427,12 @@ export const MapaMonitoramento = () => {
                             </div>
                           )}
                         </div>
+                        {(velEstimada || paradoEstimado) && (
+                          <p className="text-[9px] text-slate-400 mt-1.5">* estimado a partir do histórico de GPS (últimas 24h) — LeiturasOperacao ainda não tem esse valor oficial</p>
+                        )}
                       </div>
-                    )}
+                      );
+                    })()}
 
                     <div className="pt-1 flex items-center justify-between">
                       {statusBadge(getStatusComunicacao(selectedEquipamento.MinutosSemComunicacao))}
