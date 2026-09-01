@@ -8,10 +8,7 @@ const router = Router();
 // de cada equipamento (LeiturasSensor e LeiturasOperacao), via OUTER APPLY TOP 1.
 const POSICOES_QUERY = `
 SELECT
-  p.EquipamentoId, p.CodigoEquipamento, p.Nome, p.GrupoFrente, p.Fazenda,
-  p.Latitude, p.Longitude, p.VelocidadeKmh, p.DirecaoGraus, p.Estado,
-  p.OperacaoDescricao, p.Operador, p.CodigoTalhao, p.DataHoraOperacao,
-  p.ColetadoEm, p.MinutosSemComunicacao,
+  p.*,
   te.Descricao AS TipoEquipamento,
   sens.PorcentagemCargaBateria, sens.TensaoBateria, sens.TemperaturaBateria,
   sens.UmidadeSolo, sens.UmidadeSolo2, sens.UmidadeSolo3,
