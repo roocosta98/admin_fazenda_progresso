@@ -47,8 +47,8 @@ type StatusComunicacao = 'online' | 'atencao' | 'offline' | 'sem_dados';
 
 const getStatusComunicacao = (minutos: number | null): StatusComunicacao => {
   if (minutos === null || minutos === undefined) return 'sem_dados';
-  if (minutos <= 5) return 'online';
-  if (minutos <= 30) return 'atencao';
+  if (minutos <= 30) return 'online';
+  if (minutos <= 1440) return 'atencao';
   return 'offline';
 };
 
