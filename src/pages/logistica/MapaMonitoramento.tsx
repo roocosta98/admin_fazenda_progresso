@@ -104,7 +104,7 @@ export const MapaMonitoramento = () => {
       }
     } catch (error) {
       console.error('Erro ao buscar vw_UltimaPosicao:', error);
-      setErro('Não foi possível conectar ao banco de dados da fazenda (SQL Server). Verifique se o backend (server/) está rodando e configurado.');
+      setErro('Não foi possível conectar ao banco de dados da fazenda (SQL Server). Verifique as variáveis MSSQL_* no Vercel (ou, em desenvolvimento local, rode com `vercel dev`) e confira os logs da function em /api/frota/posicoes.');
     } finally {
       setLoading(false);
     }
