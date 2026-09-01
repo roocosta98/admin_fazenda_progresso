@@ -223,16 +223,22 @@ export const MapaMonitoramento = () => {
       setPosicoes(data);
       setErro(null);
       setUltimaAtualizacao(new Date());
-      if (!selectedEquipamento && data.length > 0) {
-        setSelectedEquipamento(data[0]);
-      }
+      // Usa a forma funcional (lê o estado mais recente, não uma cópia presa no fechamento
+      // desta função) pra: 1) selecionar o primeiro item só na carga inicial, e 2) atualizar
+      // os dados do equipamento já selecionado sem trocar QUAL equipamento está selecionado —
+      // sem isso, a cada poll de 15s a seleção "esquecia" o que o usuário tinha clicado e
+      // voltava pro primeiro da lista, parecendo pular de veículo em veículo sozinho.
+      setSelectedEquipamento((atual) => {
+        if (!atual) return data[0] ?? null;
+        const atualizado = data.find((p) => p.EquipamentoId === atual.EquipamentoId);
+        return atualizado ?? atual;
+      });
     } catch (error) {
       console.error('Erro ao buscar vw_UltimaPosicao:', error);
       setErro('Não foi possível conectar ao banco de dados da fazenda (SQL Server). Verifique as variáveis MSSQL_* no Vercel (ou, em desenvolvimento local, rode com `vercel dev`) e confira os logs da function em /api/frota/posicoes.');
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
