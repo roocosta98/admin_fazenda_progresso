@@ -22,7 +22,8 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 const POLL_INTERVAL_MS = 15000;
-const ITEMS_PER_PAGE = 10;
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 'todos'] as const;
+type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
 // vw_UltimaPosicao enriquecida — ver api/frota/posicoes.ts
 interface PosicaoEquipamento {
@@ -71,6 +72,7 @@ export const TelaTVMonitor = () => {
   const [autoScroll, setAutoScroll] = useState(true);
   const [showOffline, setShowOffline] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState<PageSize>(10);
 
   const carregarPosicoes = useCallback(async () => {
     try {
@@ -97,7 +99,12 @@ export const TelaTVMonitor = () => {
 
   const allItems = showOffline ? posicoes : posicoes.filter((p) => getStatusComunicacao(p.MinutosSemComunicacao) !== 'offline');
 
-  const totalPages = Math.max(1, Math.ceil(allItems.length / ITEMS_PER_PAGE));
+  const totalPages = itemsPerPage === 'todos' ? 1 : Math.max(1, Math.ceil(allItems.length / itemsPerPage));
+
+  const handleChangeItemsPerPage = (novoTamanho: PageSize) => {
+    setItemsPerPage(novoTamanho);
+    setCurrentPage(0);
+  };
 
   // Relógio ao vivo com segundos
   useEffect(() => {
@@ -124,7 +131,9 @@ export const TelaTVMonitor = () => {
     }
   };
 
-  const paginatedItems = allItems.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
+  const paginatedItems = itemsPerPage === 'todos'
+    ? allItems
+    : allItems.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
   return (
     <div className={`min-h-screen transition-colors duration-300 font-sans select-none flex flex-col ${
@@ -400,11 +409,34 @@ export const TelaTVMonitor = () => {
           }`}>
             <div className="flex items-center space-x-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              <span>Exibindo {allItems.length === 0 ? 0 : currentPage * ITEMS_PER_PAGE + 1} a {Math.min((currentPage + 1) * ITEMS_PER_PAGE, allItems.length)} de {allItems.length} equipamentos (vw_UltimaPosicao)</span>
+              <span>
+                Exibindo {allItems.length === 0 ? 0 : currentPage * (itemsPerPage === 'todos' ? allItems.length : itemsPerPage) + 1} a{' '}
+                {itemsPerPage === 'todos' ? allItems.length : Math.min((currentPage + 1) * itemsPerPage, allItems.length)} de {allItems.length} equipamentos (vw_UltimaPosicao)
+              </span>
             </div>
 
             {/* CONTROLES DE PÁGINA */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
+              {/* Seletor de quantidade por página */}
+              <div className="flex items-center space-x-1.5">
+                <span className="text-[11px] uppercase tracking-wider text-slate-400">Exibir:</span>
+                <div className={`flex p-0.5 rounded-lg border ${themeMode === 'light' ? 'bg-slate-100 border-slate-200' : 'bg-slate-800 border-slate-700'}`}>
+                  {PAGE_SIZE_OPTIONS.map((opcao) => (
+                    <button
+                      key={opcao}
+                      onClick={() => handleChangeItemsPerPage(opcao)}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
+                        itemsPerPage === opcao
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : themeMode === 'light' ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-100'
+                      }`}
+                    >
+                      {opcao === 'todos' ? 'Todos' : opcao}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <span className="text-[11px] uppercase tracking-wider text-slate-400">Página {currentPage + 1} de {totalPages}</span>
 
               <div className="flex space-x-1">
