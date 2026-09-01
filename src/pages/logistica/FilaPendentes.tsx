@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { StatCard } from '../../components/common/StatCard';
@@ -7,19 +7,51 @@ import { Modal } from '../../components/common/Modal';
 import { AprovarSolicitacaoDrawer } from './components/AprovarSolicitacaoDrawer';
 import { SlideOverDrawer } from '../../components/common/SlideOverDrawer';
 import { Clock, Truck, User as UserIcon, Search, CheckCircle2, AlertTriangle, RefreshCw, Eye, MapPin, Calendar, FileText } from 'lucide-react';
-import type { SolicitacaoTransporte } from '../../types';
+import type { SolicitacaoTransporte, Veiculo, Motorista } from '../../types';
+
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 export const FilaPendentes = () => {
-  const { solicitacoes, veiculos, motoristas, substituirMotorista, substituirVeiculo } = useAppContext();
-  
+  const { solicitacoes, substituirMotorista, substituirVeiculo } = useAppContext();
+
   const [activeTab, setActiveTab] = useState<'pendentes' | 'aprovados'>('pendentes');
   const [busca, setBusca] = useState('');
 
+  // Veículos e operadores cadastrados de verdade no banco da fazenda (Equipamentos/Operadores),
+  // usados pra escolher quem alocar/trocar — não existe "disponível" real nesse schema, então
+  // status aqui é só um placeholder pro tipo bater; quem decide a disponibilidade é o usuário.
+  const [equipamentosReais, setEquipamentosReais] = useState<Veiculo[]>([]);
+  const [operadoresReais, setOperadoresReais] = useState<Motorista[]>([]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/frota/equipamentos`)
+      .then((r) => r.json())
+      .then((data: Array<{ EquipamentoId: number; CodigoEquipamento: string; Nome: string; TipoEquipamento: string | null }>) => {
+        setEquipamentosReais(data.map((eq) => ({
+          id: String(eq.EquipamentoId),
+          placa: eq.CodigoEquipamento,
+          modelo: eq.Nome,
+          tipo: eq.TipoEquipamento ?? '—',
+          status: 'disponivel',
+        })));
+      })
+      .catch((error) => console.error('Erro ao buscar Equipamentos:', error));
+
+    fetch(`${API_URL}/api/frota/operadores`)
+      .then((r) => r.json())
+      .then((data: Array<{ OperadorId: number; Nome: string }>) => {
+        setOperadoresReais(data.map((op) => ({
+          id: String(op.OperadorId),
+          nome: op.Nome,
+          telefone: '',
+          status: 'disponivel',
+        })));
+      })
+      .catch((error) => console.error('Erro ao buscar Operadores:', error));
+  }, []);
+
   const pendentes = solicitacoes.filter(s => s.status === 'pendente');
   const aprovados = solicitacoes.filter(s => s.status === 'agendada' || s.status === 'em_execucao' || s.status === 'concluida');
-  
-  const veiculosLivres = veiculos.filter(v => v.status === 'disponivel').length;
-  const motoristasLivres = motoristas.filter(m => m.status === 'disponivel').length;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detalhesOpen, setDetalhesOpen] = useState(false);
@@ -53,8 +85,9 @@ export const FilaPendentes = () => {
   };
 
   const handleConfirmarTrocaMotorista = () => {
-    if (substituirModal.os && novoMotoristaId && justificativaTroca.trim()) {
-      substituirMotorista(substituirModal.os.numeroOS, novoMotoristaId, justificativaTroca.trim());
+    const motorista = operadoresReais.find((op) => op.id === novoMotoristaId);
+    if (substituirModal.os && motorista && justificativaTroca.trim()) {
+      substituirMotorista(substituirModal.os.numeroOS, motorista, justificativaTroca.trim());
       setSubstituirModal({ open: false, os: null });
       setNovoMotoristaId('');
       setJustificativaTroca('');
@@ -63,8 +96,9 @@ export const FilaPendentes = () => {
   };
 
   const handleConfirmarTrocaVeiculo = () => {
-    if (substituirVeiculoModal.os && novoVeiculoId && justificativaTrocaVeiculo.trim()) {
-      substituirVeiculo(substituirVeiculoModal.os.numeroOS, novoVeiculoId, justificativaTrocaVeiculo.trim());
+    const veiculo = equipamentosReais.find((eq) => eq.id === novoVeiculoId);
+    if (substituirVeiculoModal.os && veiculo && justificativaTrocaVeiculo.trim()) {
+      substituirVeiculo(substituirVeiculoModal.os.numeroOS, veiculo, justificativaTrocaVeiculo.trim());
       setSubstituirVeiculoModal({ open: false, os: null });
       setNovoVeiculoId('');
       setJustificativaTrocaVeiculo('');
@@ -259,8 +293,8 @@ export const FilaPendentes = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Pendentes" value={pendentes.length} icon={<Clock size={24} />} colorClass="text-amber-600 bg-amber-500" />
         <StatCard title="Aprovados / Agendados" value={aprovados.length} icon={<CheckCircle2 size={24} />} colorClass="text-emerald-600 bg-emerald-500" />
-        <StatCard title="Veículos Livres" value={veiculosLivres} icon={<Truck size={24} />} colorClass="text-blue-600 bg-blue-500" />
-        <StatCard title="Motoristas Livres" value={motoristasLivres} icon={<UserIcon size={24} />} colorClass="text-indigo-600 bg-indigo-500" />
+        <StatCard title="Veículos Cadastrados" value={equipamentosReais.length} icon={<Truck size={24} />} colorClass="text-blue-600 bg-blue-500" />
+        <StatCard title="Operadores Cadastrados" value={operadoresReais.length} icon={<UserIcon size={24} />} colorClass="text-indigo-600 bg-indigo-500" />
       </div>
 
       {/* Seletor de Abas: Pendentes x Aprovados */}
@@ -467,20 +501,18 @@ export const FilaPendentes = () => {
           
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
-              Novo Motorista Disponível <span className="text-red-500">*</span>
+              Novo Operador (cadastrado na fazenda) <span className="text-red-500">*</span>
             </label>
             <select
               value={novoMotoristaId}
               onChange={(e) => setNovoMotoristaId(e.target.value)}
               className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm font-medium appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat"
             >
-              <option value="">Selecione o novo motorista...</option>
-              {motoristas
-                .filter(m => m.id !== substituirModal.os?.motoristaAlocado?.id)
-                .map(m => (
-                  <option key={m.id} value={m.id} disabled={m.status !== 'disponivel'}>
-                    {m.nome} ({m.status === 'disponivel' ? 'Disponível' : m.status})
-                  </option>
+              <option value="">Selecione o novo operador...</option>
+              {operadoresReais
+                .filter(op => op.id !== substituirModal.os?.motoristaAlocado?.id)
+                .map(op => (
+                  <option key={op.id} value={op.id}>{op.nome}</option>
                 ))}
             </select>
           </div>
@@ -539,7 +571,7 @@ export const FilaPendentes = () => {
           
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
-              Novo Veículo Compatível <span className="text-red-500">*</span>
+              Novo Veículo (cadastrado na fazenda) <span className="text-red-500">*</span>
             </label>
             <select
               value={novoVeiculoId}
@@ -547,8 +579,8 @@ export const FilaPendentes = () => {
               className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all bg-white text-sm shadow-sm font-medium appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.2em] bg-[right_1rem_center] bg-no-repeat"
             >
               <option value="">Selecione o novo veículo...</option>
-              {veiculos
-                .filter(v => v.id !== substituirVeiculoModal.os?.veiculoAlocado?.id && v.status !== 'manutencao')
+              {equipamentosReais
+                .filter(v => v.id !== substituirVeiculoModal.os?.veiculoAlocado?.id)
                 .map(v => (
                   <option key={v.id} value={v.id}>
                     {v.placa} - {v.modelo} ({v.tipo})

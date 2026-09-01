@@ -20,8 +20,8 @@ interface AppContextType {
   aprovarEAgendarSolicitacao: (idOS: string, veiculoId: string, motoristaId: string, horarioConfirmado?: string, observacaoLogistica?: string) => void;
   reagendarSolicitacao: (idOS: string, novaData: string, novoHorario: string, observacaoLogistica: string) => void;
   cancelarSolicitacao: (idOS: string, motivo: string) => void;
-  substituirMotorista: (idOS: string, novoMotoristaId: string, justificativa?: string) => void;
-  substituirVeiculo: (idOS: string, novoVeiculoId: string, justificativa: string) => void;
+  substituirMotorista: (idOS: string, novoMotorista: Motorista, justificativa?: string) => void;
+  substituirVeiculo: (idOS: string, novoVeiculo: Veiculo, justificativa: string) => void;
   filtrarSolicitacoes: (filtros: { status?: StatusSolicitacao, projetoId?: string, busca?: string }) => SolicitacaoTransporte[];
 }
 
@@ -145,10 +145,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setNotificacoes(prev => [notifCancelamento, ...prev]);
   };
 
-  const substituirMotorista = (idOS: string, novoMotoristaId: string, justificativa?: string) => {
-    const motorista = motoristas.find(m => m.id === novoMotoristaId);
-    if (!motorista) return;
-
+  const substituirMotorista = (idOS: string, motorista: Motorista, justificativa?: string) => {
     setSolicitacoes(prev => prev.map(sol => {
       if (sol.numeroOS === idOS) {
         return { ...sol, motoristaAlocado: motorista };
@@ -166,10 +163,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setNotificacoes(prev => [novaNotif, ...prev]);
   };
 
-  const substituirVeiculo = (idOS: string, novoVeiculoId: string, justificativa: string) => {
-    const veiculo = veiculos.find(v => v.id === novoVeiculoId);
-    if (!veiculo) return;
-
+  const substituirVeiculo = (idOS: string, veiculo: Veiculo, justificativa: string) => {
     setSolicitacoes(prev => prev.map(sol => {
       if (sol.numeroOS === idOS) {
         const veiculoAntigoNome = sol.veiculoAlocado ? `${sol.veiculoAlocado.modelo} (${sol.veiculoAlocado.placa})` : 'Nenhum';
