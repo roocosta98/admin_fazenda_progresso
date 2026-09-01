@@ -4,7 +4,7 @@ import { List, Clock, LayoutDashboard, Truck, Map as MapIcon, Leaf, MonitorPlay,
 
 export const Sidebar = () => {
   const { usuario } = useAuth();
-  
+
   if (!usuario) return null;
 
   const links = usuario.perfil === 'solicitante' 
