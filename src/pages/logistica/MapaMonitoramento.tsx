@@ -21,7 +21,9 @@ import {
 } from 'lucide-react';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyAeQIKfNplzSj3wnUdIVBSnhzDb0OuFPwM';
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3333';
+// Sem VITE_API_URL, usa caminho relativo (mesma origem) — funciona tanto no Vercel
+// (api/frota/*.ts como serverless functions) quanto local via `vercel dev`.
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 const POLL_INTERVAL_MS = 15000;
 
 // Centro aproximado da Fazenda Progresso em Mucugê / Chapada Diamantina - BA
