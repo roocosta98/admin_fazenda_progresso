@@ -22,7 +22,7 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 const POLL_INTERVAL_MS = 15000;
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 'todos'] as const;
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 75, 100, 'todos'] as const;
 type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
 // vw_UltimaPosicao enriquecida — ver api/frota/posicoes.ts
