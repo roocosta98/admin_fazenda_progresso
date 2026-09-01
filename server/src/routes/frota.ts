@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import sql from 'mssql';
 import { getMssqlPool } from '../lib/mssql.js';
 
 const router = Router();
@@ -11,6 +12,7 @@ const router = Router();
 // - velocidade média e tempo parado ESTIMADOS a partir do histórico de GPS das últimas 24h
 //   (LeiturasLocalizacao), pra quando LeiturasOperacao ainda não tiver dado oficial calculado
 //   pelo sistema do cliente
+// - horímetro/odômetro e implemento acoplado (última leitura de LeiturasLocalizacao + Implementos)
 const POSICOES_QUERY = `
 WITH LeiturasJanela AS (
   SELECT
@@ -27,7 +29,7 @@ ResumoMovimento AS (
     AVG(CAST(VelocidadeKmh AS FLOAT)) AS VelocidadeMediaCalculadaKmh,
     SUM(CASE
           WHEN VelocidadeKmh IS NOT NULL AND VelocidadeKmh <= 1 AND ProximaColetaUtc IS NOT NULL
-          THEN DATEDIFF(SECOND, ColetadoEmUtc, ProximaColetaUtc)
+          THEN LEAST(DATEDIFF(SECOND, ColetadoEmUtc, ProximaColetaUtc), 1800)
           ELSE 0
         END) AS TempoParadoSegundosCalculado,
     COUNT(*) AS QtdLeiturasJanela
@@ -44,7 +46,8 @@ SELECT
   oper.ConsumoMedioLitros, oper.VelocidadeMedia AS VelocidadeMediaOperacao, oper.RpmMedio,
   oper.TempoMotorLigadoSegundos, oper.TempoMotorOciosoSegundos, oper.AreaOperacional,
   oper.ColetadoEmUtc AS OperacaoColetadoEmUtc,
-  rm.VelocidadeMediaCalculadaKmh, rm.TempoParadoSegundosCalculado, rm.QtdLeiturasJanela
+  rm.VelocidadeMediaCalculadaKmh, rm.TempoParadoSegundosCalculado, rm.QtdLeiturasJanela,
+  loc.HorimetroOdometro, imp.Descricao AS ImplementoAcoplado
 FROM vw_UltimaPosicao p
 LEFT JOIN Equipamentos eq ON eq.EquipamentoId = p.EquipamentoId
 LEFT JOIN TiposEquipamento te ON te.TipoEquipamentoId = eq.TipoEquipamentoId
@@ -60,6 +63,13 @@ OUTER APPLY (
   WHERE lo.EquipamentoId = p.EquipamentoId
   ORDER BY lo.ColetadoEmUtc DESC
 ) oper
+OUTER APPLY (
+  SELECT TOP 1 loc2.HorimetroOdometro, loc2.ImplementoId
+  FROM LeiturasLocalizacao loc2
+  WHERE loc2.EquipamentoId = p.EquipamentoId
+  ORDER BY loc2.ColetadoEmUtc DESC
+) loc
+LEFT JOIN Implementos imp ON imp.ImplementoId = loc.ImplementoId
 LEFT JOIN ResumoMovimento rm ON rm.EquipamentoId = p.EquipamentoId
 ORDER BY p.CodigoEquipamento
 `;
@@ -71,6 +81,38 @@ router.get('/posicoes', async (_req, res) => {
     res.json(result.recordset);
   } catch (error) {
     console.error('Erro ao consultar posições enriquecidas:', error);
+    res.status(502).json({ error: 'Falha ao consultar o banco de dados da fazenda (SQL Server)' });
+  }
+});
+
+// Histórico de posições de um equipamento (LeiturasLocalizacao), usado pro rastro no mapa
+// e pro gráfico de velocidade ao longo do tempo. ?equipamentoId=233&horas=24
+router.get('/trajeto', async (req, res) => {
+  const equipamentoId = Number(req.query.equipamentoId);
+  const horas = Number(req.query.horas ?? 24);
+
+  if (!Number.isFinite(equipamentoId)) {
+    res.status(400).json({ error: 'Parâmetro equipamentoId é obrigatório e deve ser numérico' });
+    return;
+  }
+
+  try {
+    const pool = await getMssqlPool();
+    const result = await pool.request()
+      .input('equipamentoId', sql.Int, equipamentoId)
+      .input('horas', sql.Int, Number.isFinite(horas) ? horas : 24)
+      .query(`
+        SELECT Latitude, Longitude, VelocidadeKmh, ColetadoEmUtc
+        FROM LeiturasLocalizacao
+        WHERE EquipamentoId = @equipamentoId
+          AND ColetadoEmUtc >= DATEADD(HOUR, -@horas, SYSUTCDATETIME())
+          AND Latitude IS NOT NULL
+          AND Longitude IS NOT NULL
+        ORDER BY ColetadoEmUtc ASC
+      `);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Erro ao consultar trajeto:', error);
     res.status(502).json({ error: 'Falha ao consultar o banco de dados da fazenda (SQL Server)' });
   }
 });

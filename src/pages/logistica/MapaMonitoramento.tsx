@@ -7,11 +7,15 @@ import {
   useMap
 } from '@vis.gl/react-google-maps';
 import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer
+} from 'recharts';
+import {
   MapPin,
   Truck,
   Navigation2,
   Search,
   AlertCircle,
+  AlertTriangle,
   Gauge,
   User,
   Layers,
@@ -23,8 +27,11 @@ import {
   Thermometer,
   Fuel,
   Clock,
-  Tag
+  Tag,
+  Wrench,
+  History
 } from 'lucide-react';
+import { SlideOverDrawer } from '../../components/common/SlideOverDrawer';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyAeQIKfNplzSj3wnUdIVBSnhzDb0OuFPwM';
 // Sem VITE_API_URL, usa caminho relativo (mesma origem) — funciona tanto no Vercel
@@ -80,6 +87,9 @@ interface PosicaoEquipamento {
   VelocidadeMediaCalculadaKmh: number | null;
   TempoParadoSegundosCalculado: number | null;
   QtdLeiturasJanela: number | null;
+  // Última leitura de LeiturasLocalizacao + Implementos
+  HorimetroOdometro: number | null;
+  ImplementoAcoplado: string | null;
   // A API usa p.* — a view do cliente pode trazer outras colunas além das listadas acima
   [campo: string]: unknown;
 }
@@ -156,6 +166,39 @@ const MapController = ({ targetPosition }: { targetPosition: { lat: number; lng:
   return null;
 };
 
+// Histórico de posições de um equipamento (LeiturasLocalizacao) — ver api/frota/trajeto.ts
+interface TrajetoPonto {
+  Latitude: number;
+  Longitude: number;
+  VelocidadeKmh: number | null;
+  ColetadoEmUtc: string;
+}
+
+// @vis.gl/react-google-maps não tem um componente <Polyline> pronto — desenha o rastro
+// imperativamente com a API do Google Maps via useMap()
+const RastroPolyline = ({ pontos }: { pontos: TrajetoPonto[] }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map || pontos.length < 2) return;
+
+    const polyline = new google.maps.Polyline({
+      path: pontos.map((p) => ({ lat: p.Latitude, lng: p.Longitude })),
+      geodesic: true,
+      strokeColor: '#059669',
+      strokeOpacity: 0.85,
+      strokeWeight: 3,
+    });
+    polyline.setMap(map);
+
+    return () => {
+      polyline.setMap(null);
+    };
+  }, [map, pontos]);
+
+  return null;
+};
+
 export const MapaMonitoramento = () => {
   const [posicoes, setPosicoes] = useState<PosicaoEquipamento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,6 +209,9 @@ export const MapaMonitoramento = () => {
   const [statusFiltro, setStatusFiltro] = useState<'todos' | StatusComunicacao>('todos');
   const [mapTypeId, setMapTypeId] = useState<'hybrid' | 'roadmap' | 'terrain'>('hybrid');
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [trajeto, setTrajeto] = useState<TrajetoPonto[]>([]);
+  const [trajetoLoading, setTrajetoLoading] = useState(false);
+  const [historicoAberto, setHistoricoAberto] = useState(false);
 
   const carregarPosicoes = useCallback(async () => {
     try {
@@ -194,6 +240,34 @@ export const MapaMonitoramento = () => {
     const interval = setInterval(carregarPosicoes, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [carregarPosicoes]);
+
+  useEffect(() => {
+    const equipamentoId = selectedEquipamento?.EquipamentoId;
+    if (equipamentoId === undefined) {
+      setTrajeto([]);
+      return;
+    }
+    let cancelado = false;
+    setTrajetoLoading(true);
+    fetch(`${API_URL}/api/frota/trajeto?equipamentoId=${equipamentoId}&horas=24`)
+      .then((response) => {
+        if (!response.ok) throw new Error(`API respondeu ${response.status}`);
+        return response.json();
+      })
+      .then((data: TrajetoPonto[]) => {
+        if (!cancelado) setTrajeto(data);
+      })
+      .catch((error) => {
+        console.error('Erro ao buscar trajeto:', error);
+        if (!cancelado) setTrajeto([]);
+      })
+      .finally(() => {
+        if (!cancelado) setTrajetoLoading(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [selectedEquipamento?.EquipamentoId]);
 
   const handleSelectEquipamento = (equipamento: PosicaoEquipamento) => {
     setSelectedEquipamento(equipamento);
@@ -262,6 +336,7 @@ export const MapaMonitoramento = () => {
             className="w-full h-full"
           >
             <MapController targetPosition={mapCenter} />
+            <RastroPolyline pontos={trajeto} />
 
             {posicoesFiltradas.map((p) => {
               const status = getStatusComunicacao(p.MinutosSemComunicacao);
@@ -309,7 +384,15 @@ export const MapaMonitoramento = () => {
                 }
               >
                 <div className="w-72 p-1 text-slate-800 text-xs max-h-96 overflow-y-auto">
-                  <h4 className="text-sm font-black text-slate-900 leading-tight">{selectedEquipamento.Nome}</h4>
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="text-sm font-black text-slate-900 leading-tight">{selectedEquipamento.Nome}</h4>
+                    <button
+                      onClick={() => setHistoricoAberto(true)}
+                      className="shrink-0 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg hover:bg-emerald-100 transition-colors flex items-center"
+                    >
+                      <History size={11} className="mr-1" /> Histórico
+                    </button>
+                  </div>
                   {selectedEquipamento.TipoEquipamento && (
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide mb-2 flex items-center">
                       <Tag size={10} className="mr-1" /> {selectedEquipamento.TipoEquipamento}
@@ -334,16 +417,46 @@ export const MapaMonitoramento = () => {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-1.5 pt-1">
-                      <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
-                        <span className="text-slate-500 flex items-center text-[10px]"><Gauge size={12} className="mr-1 text-blue-600" /> Vel:</span>
-                        <span className="font-mono font-bold text-slate-900 text-xs">{selectedEquipamento.VelocidadeKmh ?? '—'} km/h</span>
+                    {selectedEquipamento.ImplementoAcoplado && (
+                      <div className="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                        <span className="text-slate-500 flex items-center"><Wrench size={12} className="mr-1 text-slate-400" /> Implemento:</span>
+                        <span className="font-bold text-slate-800 truncate max-w-[140px]">{selectedEquipamento.ImplementoAcoplado}</span>
                       </div>
-                      <div className="bg-slate-50 p-1.5 rounded-lg flex items-center justify-between border border-slate-200">
-                        <span className="text-slate-500 flex items-center text-[10px]">Estado:</span>
-                        <span className="font-bold text-slate-900 text-xs truncate max-w-[70px]">{selectedEquipamento.Estado ?? '—'}</span>
+                    )}
+
+                    {selectedEquipamento.HorimetroOdometro !== null && (
+                      <div className="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                        <span className="text-slate-500 flex items-center"><Gauge size={12} className="mr-1 text-slate-400" /> Horímetro/Odômetro:</span>
+                        <span className="font-mono font-bold text-slate-800">{formatNumero(selectedEquipamento.HorimetroOdometro, 1)}</span>
                       </div>
-                    </div>
+                    )}
+
+                    {(() => {
+                      const statusComm = getStatusComunicacao(selectedEquipamento.MinutosSemComunicacao);
+                      const desatualizado = statusComm !== 'online';
+                      return (
+                        <>
+                          {desatualizado && (
+                            <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-lg p-1.5 text-[10px] text-amber-800">
+                              <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                              <span>
+                                Sem comunicação há {selectedEquipamento.MinutosSemComunicacao !== null ? `${formatNumero(selectedEquipamento.MinutosSemComunicacao / 60, 1)}h` : 'muito tempo'} — velocidade e estado abaixo são a <strong>última leitura conhecida</strong>, não a situação atual.
+                              </span>
+                            </div>
+                          )}
+                          <div className="grid grid-cols-2 gap-1.5 pt-1">
+                            <div className={`p-1.5 rounded-lg flex items-center justify-between border ${desatualizado ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+                              <span className="text-slate-500 flex items-center text-[10px]"><Gauge size={12} className="mr-1 text-blue-600" /> Vel:</span>
+                              <span className={`font-mono font-bold text-xs ${desatualizado ? 'text-amber-700' : 'text-slate-900'}`}>{selectedEquipamento.VelocidadeKmh ?? '—'} km/h</span>
+                            </div>
+                            <div className={`p-1.5 rounded-lg flex items-center justify-between border ${desatualizado ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+                              <span className="text-slate-500 flex items-center text-[10px]">Estado:</span>
+                              <span className={`font-bold text-xs truncate max-w-[70px] ${desatualizado ? 'text-amber-700' : 'text-slate-900'}`}>{selectedEquipamento.Estado ?? '—'}</span>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
 
                     {(selectedEquipamento.PorcentagemCargaBateria !== null || mediaUmidadeSolo(selectedEquipamento) !== null || selectedEquipamento.TemperaturaAmbiente !== null) && (
                       <div className="pt-1 border-t border-slate-100">
@@ -604,7 +717,9 @@ export const MapaMonitoramento = () => {
                           <MapPin size={11} className="mr-1 text-emerald-600" />
                           {p.CodigoTalhao ? `Talhão ${p.CodigoTalhao}` : p.OperacaoDescricao ?? '—'}
                         </span>
-                        <span className="font-mono text-emerald-700 font-bold">{p.VelocidadeKmh ?? 0} km/h</span>
+                        <span className={`font-mono font-bold ${status === 'online' ? 'text-emerald-700' : 'text-amber-600'}`} title={status === 'online' ? undefined : 'Última leitura conhecida — pode estar desatualizada'}>
+                          {p.VelocidadeKmh ?? 0} km/h{status === 'online' ? '' : '*'}
+                        </span>
                       </div>
                     </div>
                   );
@@ -614,6 +729,63 @@ export const MapaMonitoramento = () => {
           </div>
         </div>
       </div>
+
+      <SlideOverDrawer
+        isOpen={historicoAberto}
+        onClose={() => setHistoricoAberto(false)}
+        title={selectedEquipamento ? `Histórico — ${selectedEquipamento.Nome}` : 'Histórico do Equipamento'}
+        width="max-w-2xl"
+      >
+        {trajetoLoading && <p className="text-sm text-slate-400 text-center py-12">Carregando histórico...</p>}
+
+        {!trajetoLoading && trajeto.length === 0 && (
+          <p className="text-sm text-slate-400 text-center py-12">Sem leituras de GPS nas últimas 24h pra esse equipamento.</p>
+        )}
+
+        {!trajetoLoading && trajeto.length > 0 && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-bold text-slate-700 mb-3">Velocidade ao longo do tempo (últimas 24h)</h3>
+              <div style={{ width: '100%', height: 280 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={trajeto.map((p) => ({
+                      hora: new Date(p.ColetadoEmUtc).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                      velocidade: p.VelocidadeKmh ?? 0,
+                    }))}
+                    margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="hora" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                    <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} unit=" km/h" />
+                    <RechartsTooltip formatter={(value) => [`${value} km/h`, 'Velocidade']} labelFormatter={(label) => `Horário: ${label}`} />
+                    <Line type="monotone" dataKey="velocidade" stroke="#059669" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-center">
+                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Leituras</p>
+                <p className="text-lg font-black text-slate-800">{trajeto.length}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-center">
+                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Vel. máxima</p>
+                <p className="text-lg font-black text-slate-800">{formatNumero(Math.max(...trajeto.map((p) => p.VelocidadeKmh ?? 0)), 0)} km/h</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-center">
+                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Vel. média</p>
+                <p className="text-lg font-black text-slate-800">{formatNumero(trajeto.reduce((soma, p) => soma + (p.VelocidadeKmh ?? 0), 0) / trajeto.length, 1)} km/h</p>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-slate-400">
+              Baseado em {trajeto.length} leitura(s) de GPS (LeiturasLocalizacao) nas últimas 24h. O mesmo período é desenhado como rastro no mapa.
+            </p>
+          </div>
+        )}
+      </SlideOverDrawer>
     </APIProvider>
   );
 };
