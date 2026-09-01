@@ -571,16 +571,16 @@ export const MapaMonitoramento = () => {
         </div>
 
         {/* PAINEL CLARO FLUTUANTE DE CONTROLES DO GOOGLE MAPS (SUPERIOR ESQUERDO) */}
-        <div className="absolute top-8 left-6 z-30 flex flex-col space-y-3 pointer-events-auto">
-          <div className="bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-slate-200/80 flex items-center space-x-2">
+        <div className="absolute top-8 left-6 z-30 flex flex-col space-y-3 pointer-events-auto max-w-[calc(100vw-27rem)]">
+          <div className="bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-slate-200/80 flex flex-wrap items-center gap-2">
             <div className="flex items-center space-x-1 px-2 py-1 bg-emerald-50 text-emerald-800 rounded-xl font-bold text-xs border border-emerald-200">
               <MapIcon size={14} className="mr-1 text-emerald-600" />
               <span>Google Maps Ativo</span>
             </div>
 
-            <div className="h-6 w-px bg-slate-200 mx-1"></div>
+            <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
 
-            <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button
                 onClick={() => setMapTypeId('hybrid')}
                 className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center ${mapTypeId === 'hybrid' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
